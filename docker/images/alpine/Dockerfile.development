@@ -1,0 +1,21 @@
+
+ARG GO_DOCKER_VERSION=1.23
+
+FROM golang:${GO_DOCKER_VERSION}-alpine AS builder
+
+ENV APP_DIR=/app \
+    APP_ENV=development \
+    APP_LISTEN_PORT=8080
+
+WORKDIR $APP_DIR
+
+COPY . $APP_DIR/src
+
+RUN go build -o bin/app $APP_DIR/src/cmd/app/main.go
+
+COPY config.yaml $APP_DIR/bin
+
+EXPOSE 8080
+
+CMD ["./bin/app"]
+#CMD ["tail", "-f", "/dev/null"]
