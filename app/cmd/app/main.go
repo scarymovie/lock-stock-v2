@@ -1,18 +1,36 @@
 package main
 
 import (
-	"log"
+	"fmt"
+	"lock-stock-v2/wire"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 )
 
 func main() {
-	log.Println("Application successfully started")
-	mux := http.NewServeMux()
-
-	port := ":" + "8080"
-	log.Printf("Server is running on port %s", port)
-	if err := http.ListenAndServe(port, mux); err != nil {
-		log.Fatalf("could not start server: %v", err)
+	r, err := wire.InitializeRouter()
+	if err != nil {
+		fmt.Printf("Failed to initialize router: %v\n", err)
+		return
 	}
 
+	// Запуск HTTP-сервера.
+	port := ":8080"
+	fmt.Printf("Server is running on %s\n", port)
+	server := &http.Server{Addr: port, Handler: r}
+	go func() {
+		if err := server.ListenAndServe(); err != nil {
+			fmt.Printf("Error starting server: %s\n", err)
+		}
+	}()
+
+	// Слушаем сигнал завершения процесса
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+
+	fmt.Println("Shutting down server...")
+	server.Close()
 }
