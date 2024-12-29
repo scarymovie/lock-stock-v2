@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/go-chi/chi/v5"
 	"lock-stock-v2/external/usecase"
@@ -9,15 +8,15 @@ import (
 )
 
 type JoinRoom struct {
+	joinRoomUseCase usecase.JoinRoom
 }
 
-func NewJoinRoom() *JoinRoom {
-	return &JoinRoom{}
+func NewJoinRoom(u usecase.JoinRoom) *JoinRoom {
+	return &JoinRoom{joinRoomUseCase: u}
 }
 
 // ServeHTTP - метод, реализующий интерфейс handlers.JoinRoom.
 func (h *JoinRoom) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("join room")
 	roomID := chi.URLParam(r, "roomId")
 	if roomID == "" {
 		http.Error(w, "Room ID is required", http.StatusBadRequest)
@@ -29,11 +28,17 @@ func (h *JoinRoom) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req usecase.JoinRoomRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request", http.StatusBadRequest)
+	req := usecase.JoinRoomRequest{
+		PlayerId: playerId,
+		RoomId:   roomID,
+	}
+
+	err := h.joinRoomUseCase.JoinRoom(req)
+	if err != nil {
+		http.Error(w, "Failed to join room: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
+
 	w.WriteHeader(http.StatusOK)
-	fmt.Fprintf(w, "Player %s joined room %s", req.PlayerId, roomID)
+	fmt.Println(w, "Player %s joined room %s", req.PlayerId, req.RoomId)
 }

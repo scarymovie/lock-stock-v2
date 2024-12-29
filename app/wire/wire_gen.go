@@ -8,6 +8,7 @@ package wire
 
 import (
 	"lock-stock-v2/internal/handlers"
+	"lock-stock-v2/internal/usecase"
 	"lock-stock-v2/router"
 	"net/http"
 )
@@ -16,7 +17,8 @@ import (
 
 // InitializeRouter связывает все зависимости и возвращает готовый http.Handler.
 func InitializeRouter() (http.Handler, error) {
-	joinRoom := handlers.NewJoinRoom()
+	joinRoomUsecase := usecase.NewJoinRoom()
+	joinRoom := handlers.NewJoinRoom(joinRoomUsecase)
 	handler := router.NewRouter(joinRoom)
 	return handler, nil
 }
