@@ -11,12 +11,13 @@ import (
 type JoinRoom struct {
 }
 
-func NewJoinRoomHandler() *JoinRoom {
+func NewJoinRoom() *JoinRoom {
 	return &JoinRoom{}
 }
 
-// ServeHTTP - метод, который реализует интерфейс JoinRoom.
+// ServeHTTP - метод, реализующий интерфейс handlers.JoinRoom.
 func (h *JoinRoom) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("join room")
 	roomID := chi.URLParam(r, "roomId")
 	if roomID == "" {
 		http.Error(w, "Room ID is required", http.StatusBadRequest)
@@ -24,7 +25,7 @@ func (h *JoinRoom) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	playerId := chi.URLParam(r, "playerId")
 	if playerId == "" {
-		http.Error(w, "player ID is required", http.StatusBadRequest)
+		http.Error(w, "Player ID is required", http.StatusBadRequest)
 		return
 	}
 

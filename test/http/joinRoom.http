@@ -1,0 +1,4 @@
+### GET request to example server
+POST http://localhost:8080/join/room/1/player/2
+
+###

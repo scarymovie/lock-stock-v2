@@ -12,7 +12,7 @@ func NewRouter(joinRoom handlers.JoinRoom) http.Handler {
 	r := chi.NewRouter()
 
 	// Регистрация маршрута с middleware и обработчиком.
-	r.With(middleware.LoggingMiddleware).Post("/room/{id}", joinRoom.ServeHTTP)
+	r.With(middleware.LoggingMiddleware).Post("/join/room/{roomId}/player/{playerId}", joinRoom.ServeHTTP)
 
 	return r
 }

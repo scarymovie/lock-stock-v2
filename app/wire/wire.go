@@ -1,8 +1,12 @@
+//go:build wireinject
+// +build wireinject
+
 package wire
 
 import (
 	"github.com/google/wire"
-	"lock-stock-v2/internal/handlers"
+	externalHandlers "lock-stock-v2/external/handlers"
+	internalHandlers "lock-stock-v2/internal/handlers"
 	"lock-stock-v2/router"
 	"net/http"
 )
@@ -11,7 +15,8 @@ import (
 func InitializeRouter() (http.Handler, error) {
 	wire.Build(
 		// Handlers
-		handlers.NewJoinRoomHandler,
+		internalHandlers.NewJoinRoom,
+		wire.Bind(new(externalHandlers.JoinRoom), new(*internalHandlers.JoinRoom)), // Привязка интерфейса к реализации
 		// Роутер
 		router.NewRouter, // Роутер зависит от JoinRoom
 	)
