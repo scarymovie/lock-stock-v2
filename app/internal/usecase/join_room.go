@@ -11,11 +11,14 @@ type JoinRoomUsecase struct {
 	roomFinder domain.RoomFinder
 }
 
-func NewJoinRoom() *JoinRoomUsecase {
-	return &JoinRoomUsecase{}
+func NewJoinRoomUsecase(roomFinder domain.RoomFinder) *JoinRoomUsecase {
+	return &JoinRoomUsecase{
+		roomFinder: roomFinder,
+	}
 }
 
 func (s JoinRoomUsecase) JoinRoom(request usecase.JoinRoomRequest) error {
+	// Используем только интерфейс RoomFinder
 	room, err := s.roomFinder.FindById(request.RoomId)
 	if err != nil {
 		log.Fatalln(err.Error())
