@@ -5,8 +5,10 @@ package wire
 
 import (
 	"github.com/google/wire"
+	externalDomain "lock-stock-v2/external/domain"
 	externalHandlers "lock-stock-v2/external/handlers"
 	externalUsecase "lock-stock-v2/external/usecase"
+	internalDomainRepository "lock-stock-v2/internal/domain/repository"
 	internalHandlers "lock-stock-v2/internal/handlers"
 	internalUsecase "lock-stock-v2/internal/usecase"
 	"lock-stock-v2/router"
@@ -22,6 +24,10 @@ func InitializeRouter() (http.Handler, error) {
 		// Usecase
 		internalUsecase.NewJoinRoom,
 		wire.Bind(new(externalUsecase.JoinRoom), new(*internalUsecase.JoinRoomUsecase)),
+		// Domain
+		internalDomainRepository.NewInMemoryRoomRepository,
+		wire.Bind(new(externalDomain.RoomFinder), new(*internalDomainRepository.InMemoryRoomRepository)),
+
 		// Роутер
 		router.NewRouter,
 	)
