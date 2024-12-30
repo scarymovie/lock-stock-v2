@@ -21,6 +21,7 @@ func InitializeRouter() (http.Handler, error) {
 	inMemoryRoomRepository := repository.NewInMemoryRoomRepository()
 	joinRoomUsecase := usecase.NewJoinRoomUsecase(inMemoryRoomRepository)
 	joinRoom := handlers.NewJoinRoom(joinRoomUsecase)
-	handler := router.NewRouter(joinRoom)
+	inMemoryUserRepository := repository.NewInMemoryUserRepository()
+	handler := router.NewRouter(joinRoom, inMemoryUserRepository)
 	return handler, nil
 }

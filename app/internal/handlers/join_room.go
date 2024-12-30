@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/go-chi/chi/v5"
 	"lock-stock-v2/external/usecase"
+	"lock-stock-v2/middleware"
 	"net/http"
 )
 
@@ -22,18 +23,19 @@ func (h *JoinRoom) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Room ID is required", http.StatusBadRequest)
 		return
 	}
-	playerId := chi.URLParam(r, "playerId")
-	if playerId == "" {
-		http.Error(w, "Player ID is required", http.StatusBadRequest)
+
+	user, err := middleware.GetUserFromContext(r.Context())
+	if err != nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
 	req := usecase.JoinRoomRequest{
-		PlayerId: playerId,
+		PlayerId: user.GetId(),
 		RoomId:   roomID,
 	}
 
-	err := h.joinRoomUseCase.JoinRoom(req)
+	err = h.joinRoomUseCase.JoinRoom(req)
 	if err != nil {
 		http.Error(w, "Failed to join room: "+err.Error(), http.StatusInternalServerError)
 		return

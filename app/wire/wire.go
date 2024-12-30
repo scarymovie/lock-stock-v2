@@ -26,10 +26,11 @@ func InitializeRouter() (http.Handler, error) {
 		internalUsecase.NewJoinRoomUsecase,
 		wire.Bind(new(externalUsecase.JoinRoom), new(*internalUsecase.JoinRoomUsecase)),
 
-		// Domain - репозиторий покрывает два интерфейса
+		// Domain
 		internalDomainRepository.NewInMemoryRoomRepository,
 		wire.Bind(new(externalDomain.RoomFinder), new(*internalDomainRepository.InMemoryRoomRepository)),
-		//wire.Bind(new(externalDomain.RoomRepository), new(*internalDomainRepository.InMemoryRoomRepository)),
+		internalDomainRepository.NewInMemoryUserRepository,
+		wire.Bind(new(externalDomain.UserFinder), new(*internalDomainRepository.InMemoryUserRepository)),
 
 		// Роутер
 		router.NewRouter,

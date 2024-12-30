@@ -1,5 +1,6 @@
 ###
-POST http://localhost:8080/join/room/1/player/2
+POST http://localhost:8080/join/room/room1
 Content-Type: application/json
+X-USER-ID: user1
 
 ###

@@ -2,17 +2,21 @@ package router
 
 import (
 	"github.com/go-chi/chi/v5"
+	"lock-stock-v2/external/domain"
 	"lock-stock-v2/external/handlers"
 	"lock-stock-v2/middleware"
 	"net/http"
 )
 
 // NewRouter принимает зависимости через Wire.
-func NewRouter(joinRoom handlers.JoinRoom) http.Handler {
+func NewRouter(joinRoom handlers.JoinRoom, userFinder domain.UserFinder) http.Handler {
 	r := chi.NewRouter()
 
-	// Регистрация маршрута с middleware и обработчиком.
-	r.With(middleware.LoggingMiddleware).Post("/join/room/{roomId}/player/{playerId}", joinRoom.ServeHTTP)
+	// Использование нескольких middleware.
+	r.With(
+		middleware.LoggingMiddleware,
+		middleware.UserAuthMiddleware(userFinder),
+	).Post("/join/room/{roomId}", joinRoom.ServeHTTP)
 
 	return r
 }
