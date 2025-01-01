@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"github.com/jackc/pgx/v5/pgxpool"
 	externalDomain "lock-stock-v2/external/domain"
-	"lock-stock-v2/internal/domain"
+	internalDomain "lock-stock-v2/internal/domain"
 	"log"
 	"time"
 )
@@ -20,7 +20,7 @@ func NewPostgresRoomUserRepository(db *pgxpool.Pool) *RoomUserRepository {
 }
 
 func (repo *RoomUserRepository) Save(roomUser externalDomain.RoomUser) error {
-	ru, ok := roomUser.(*domain.RoomUser)
+	ru, ok := roomUser.(*internalDomain.RoomUser)
 	if !ok {
 		return errors.New("invalid RoomUser type")
 	}

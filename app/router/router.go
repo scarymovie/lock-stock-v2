@@ -9,7 +9,11 @@ import (
 )
 
 // NewRouter принимает зависимости через Wire.
-func NewRouter(joinRoom handlers.JoinRoom, userFinder domain.UserFinder) http.Handler {
+func NewRouter(
+	joinRoom handlers.JoinRoom,
+	userFinder domain.UserFinder,
+	createUser handlers.CreateUser,
+) http.Handler {
 	r := chi.NewRouter()
 
 	// Использование нескольких middleware.
@@ -17,6 +21,10 @@ func NewRouter(joinRoom handlers.JoinRoom, userFinder domain.UserFinder) http.Ha
 		middleware.LoggingMiddleware,
 		middleware.UserAuthMiddleware(userFinder),
 	).Post("/join/room/{roomId}", joinRoom.ServeHTTP)
+
+	r.With(
+		middleware.LoggingMiddleware,
+	).Post("/user/create", createUser.ServeHTTP)
 
 	return r
 }
