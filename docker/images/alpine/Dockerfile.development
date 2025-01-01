@@ -9,6 +9,10 @@ ENV APP_SRC=/go/src \
 
 WORKDIR ${APP_SRC}
 
+COPY go.mod go.sum ./
+
+RUN go mod tidy
+
 COPY . .
 
 RUN go build -o ../bin ${APP_SRC}/cmd/app/main.go
