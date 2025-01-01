@@ -1,5 +1,5 @@
 ###
-POST http://localhost:8080/join/room/room1
+POST http://localhost:8080/join/room/test
 Content-Type: application/json
 Authorization: user2
 

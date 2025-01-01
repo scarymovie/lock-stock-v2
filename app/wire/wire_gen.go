@@ -7,8 +7,11 @@
 package wire
 
 import (
+	"errors"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"lock-stock-v2/internal/handlers"
 	"lock-stock-v2/internal/infrastructure/inMemory"
+	"lock-stock-v2/internal/infrastructure/postgres"
 	"lock-stock-v2/internal/usecase"
 	"lock-stock-v2/router"
 	"net/http"
@@ -20,9 +23,27 @@ import (
 func InitializeRouter() (http.Handler, error) {
 	roomUserRepository := inMemory.NewInMemoryRoomUserRepository()
 	joinRoomUsecase := usecase.NewJoinRoomUsecase(roomUserRepository)
-	roomRepository := inMemory.NewInMemoryRoomRepository()
+	pool, err := ProvidePostgresPool()
+	if err != nil {
+		return nil, err
+	}
+	roomRepository := postgres.NewPostgresRoomRepository(pool)
 	joinRoom := handlers.NewJoinRoom(joinRoomUsecase, roomRepository)
 	userRepository := inMemory.NewInMemoryUserRepository()
 	handler := router.NewRouter(joinRoom, userRepository)
 	return handler, nil
+}
+
+// wire.go:
+
+func ProvidePostgresPool() (*pgxpool.Pool, error) {
+
+	config := postgres.GetPostgresConfig()
+
+	pool := postgres.NewPostgresConnection(config)
+	if pool == nil {
+		return nil, errors.New("failed to create postgres pool")
+	}
+
+	return pool, nil
 }

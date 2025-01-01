@@ -4,20 +4,39 @@
 package wire
 
 import (
+	"errors"
 	"github.com/google/wire"
+	"github.com/jackc/pgx/v5/pgxpool"
 	externalDomain "lock-stock-v2/external/domain"
 	externalHandlers "lock-stock-v2/external/handlers"
 	externalUsecase "lock-stock-v2/external/usecase"
 	internalHandlers "lock-stock-v2/internal/handlers"
-	"lock-stock-v2/internal/infrastructure/inMemory"
+	internalMemoryRepository "lock-stock-v2/internal/infrastructure/inMemory"
+	internalPostgresRepository "lock-stock-v2/internal/infrastructure/postgres"
 	internalUsecase "lock-stock-v2/internal/usecase"
 	"lock-stock-v2/router"
 	"net/http"
 )
 
+func ProvidePostgresPool() (*pgxpool.Pool, error) {
+	// Получаем конфигурацию
+	config := internalPostgresRepository.GetPostgresConfig()
+
+	// Создаем подключение
+	pool := internalPostgresRepository.NewPostgresConnection(config)
+	if pool == nil {
+		return nil, errors.New("failed to create postgres pool")
+	}
+
+	return pool, nil
+}
+
 // InitializeRouter связывает все зависимости и возвращает готовый http.Handler.
 func InitializeRouter() (http.Handler, error) {
 	wire.Build(
+		// Подключение к PostgreSQL
+		ProvidePostgresPool, // Провайдер для подключения
+
 		// Handlers
 		internalHandlers.NewJoinRoom,
 		wire.Bind(new(externalHandlers.JoinRoom), new(*internalHandlers.JoinRoom)),
@@ -27,12 +46,12 @@ func InitializeRouter() (http.Handler, error) {
 		wire.Bind(new(externalUsecase.JoinRoom), new(*internalUsecase.JoinRoomUsecase)),
 
 		// Domain
-		inMemory.NewInMemoryRoomRepository,
-		wire.Bind(new(externalDomain.RoomFinder), new(*inMemory.RoomRepository)),
-		inMemory.NewInMemoryUserRepository,
-		wire.Bind(new(externalDomain.UserFinder), new(*inMemory.UserRepository)),
-		inMemory.NewInMemoryRoomUserRepository,
-		wire.Bind(new(externalDomain.RoomUserRepository), new(*inMemory.RoomUserRepository)),
+		internalPostgresRepository.NewPostgresRoomRepository,
+		wire.Bind(new(externalDomain.RoomFinder), new(*internalPostgresRepository.RoomRepository)),
+		internalMemoryRepository.NewInMemoryUserRepository,
+		wire.Bind(new(externalDomain.UserFinder), new(*internalMemoryRepository.UserRepository)),
+		internalMemoryRepository.NewInMemoryRoomUserRepository,
+		wire.Bind(new(externalDomain.RoomUserRepository), new(*internalMemoryRepository.RoomUserRepository)),
 
 		// Роутер
 		router.NewRouter,
