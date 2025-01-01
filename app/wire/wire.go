@@ -31,6 +31,8 @@ func InitializeRouter() (http.Handler, error) {
 		wire.Bind(new(externalDomain.RoomFinder), new(*internalDomainRepository.InMemoryRoomRepository)),
 		internalDomainRepository.NewInMemoryUserRepository,
 		wire.Bind(new(externalDomain.UserFinder), new(*internalDomainRepository.InMemoryUserRepository)),
+		internalDomainRepository.NewInMemoryRoomUserRepository,
+		wire.Bind(new(externalDomain.RoomUserRepository), new(*internalDomainRepository.InMemoryRoomUserRepository)),
 
 		// Роутер
 		router.NewRouter,

@@ -34,6 +34,6 @@ func (repo *InMemoryUserRepository) Save(user api.User) error {
 		return errors.New("invalid room type")
 	}
 
-	repo.users[u.GetId()] = u
+	repo.users[u.GetUserId()] = u
 	return nil
 }

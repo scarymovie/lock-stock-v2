@@ -4,6 +4,6 @@ type Room struct {
 	Id string
 }
 
-func (r Room) GetId() string {
+func (r Room) GetRoomId() string {
 	return r.Id
 }

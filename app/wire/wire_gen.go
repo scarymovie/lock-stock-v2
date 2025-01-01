@@ -18,9 +18,10 @@ import (
 
 // InitializeRouter связывает все зависимости и возвращает готовый http.Handler.
 func InitializeRouter() (http.Handler, error) {
+	inMemoryRoomUserRepository := repository.NewInMemoryRoomUserRepository()
+	joinRoomUsecase := usecase.NewJoinRoomUsecase(inMemoryRoomUserRepository)
 	inMemoryRoomRepository := repository.NewInMemoryRoomRepository()
-	joinRoomUsecase := usecase.NewJoinRoomUsecase(inMemoryRoomRepository)
-	joinRoom := handlers.NewJoinRoom(joinRoomUsecase)
+	joinRoom := handlers.NewJoinRoom(joinRoomUsecase, inMemoryRoomRepository)
 	inMemoryUserRepository := repository.NewInMemoryUserRepository()
 	handler := router.NewRouter(joinRoom, inMemoryUserRepository)
 	return handler, nil

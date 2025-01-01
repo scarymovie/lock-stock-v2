@@ -1,6 +1,8 @@
 package usecase
 
+import "lock-stock-v2/external/domain"
+
 type JoinRoomRequest struct {
-	PlayerId string `json:"playerId"`
-	RoomId   string `json:"roomId"`
+	User domain.User
+	Room domain.Room
 }

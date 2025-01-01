@@ -1,31 +1,31 @@
 package usecase
 
 import (
-	"fmt"
 	"lock-stock-v2/external/domain"
 	"lock-stock-v2/external/usecase"
+	internalDomain "lock-stock-v2/internal/domain"
 	"log"
 )
 
 type JoinRoomUsecase struct {
-	roomFinder domain.RoomFinder
+	roomUserRepository domain.RoomUserRepository
 }
 
-func NewJoinRoomUsecase(roomFinder domain.RoomFinder) *JoinRoomUsecase {
+func NewJoinRoomUsecase(roomUserRepository domain.RoomUserRepository) *JoinRoomUsecase {
 	return &JoinRoomUsecase{
-		roomFinder: roomFinder,
+		roomUserRepository: roomUserRepository,
 	}
 }
 
 func (s JoinRoomUsecase) JoinRoom(request usecase.JoinRoomRequest) error {
-	// Используем только интерфейс RoomFinder
-	room, err := s.roomFinder.FindById(request.RoomId)
+	roomUser := internalDomain.RoomUser{}
+	roomUser.SetRoom(request.Room)
+	roomUser.SetUser(request.User)
+	err := s.roomUserRepository.Save(&roomUser)
 	if err != nil {
-		log.Fatalln(err.Error())
+		return err
 	}
-	if room == nil {
-		fmt.Printf("Room %v does not exist", request.RoomId)
-	}
-	fmt.Printf("usecase Player %s joined room %s\n", request.PlayerId, request.RoomId)
+
+	log.Printf("usecase Player %s joined room %s\n", request.User.GetUserId(), request.Room.GetRoomId())
 	return nil
 }
