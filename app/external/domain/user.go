@@ -1,5 +1,6 @@
 package domain
 
 type User interface {
-	GetUserId() string
+	GetUserId() int
+	GetUserUid() string
 }

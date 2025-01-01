@@ -41,6 +41,9 @@ func (h *JoinRoom) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	log.Println(roomID)
+	log.Println(user.GetUserId())
+
 	req := usecase.JoinRoomRequest{
 		User: user,
 		Room: room,
@@ -53,5 +56,5 @@ func (h *JoinRoom) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
-	log.Printf("Player %s joined room %s", req.User.GetUserId(), req.Room.GetRoomId())
+	log.Printf("Player %s joined room %s", req.User.GetUserId(), req.Room.GetRoomUid())
 }

@@ -11,7 +11,6 @@ import (
 	externalHandlers "lock-stock-v2/external/handlers"
 	externalUsecase "lock-stock-v2/external/usecase"
 	internalHandlers "lock-stock-v2/internal/handlers"
-	internalMemoryRepository "lock-stock-v2/internal/infrastructure/inMemory"
 	internalPostgresRepository "lock-stock-v2/internal/infrastructure/postgres"
 	internalUsecase "lock-stock-v2/internal/usecase"
 	"lock-stock-v2/router"
@@ -48,10 +47,12 @@ func InitializeRouter() (http.Handler, error) {
 		// Domain
 		internalPostgresRepository.NewPostgresRoomRepository,
 		wire.Bind(new(externalDomain.RoomFinder), new(*internalPostgresRepository.RoomRepository)),
-		internalMemoryRepository.NewInMemoryUserRepository,
-		wire.Bind(new(externalDomain.UserFinder), new(*internalMemoryRepository.UserRepository)),
-		internalMemoryRepository.NewInMemoryRoomUserRepository,
-		wire.Bind(new(externalDomain.RoomUserRepository), new(*internalMemoryRepository.RoomUserRepository)),
+
+		internalPostgresRepository.NewPostgresUserRepository,
+		wire.Bind(new(externalDomain.UserFinder), new(*internalPostgresRepository.UserRepository)),
+
+		internalPostgresRepository.NewPostgresRoomUserRepository,
+		wire.Bind(new(externalDomain.RoomUserRepository), new(*internalPostgresRepository.RoomUserRepository)),
 
 		// Роутер
 		router.NewRouter,

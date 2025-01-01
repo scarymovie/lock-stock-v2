@@ -10,7 +10,6 @@ import (
 	"errors"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"lock-stock-v2/internal/handlers"
-	"lock-stock-v2/internal/infrastructure/inMemory"
 	"lock-stock-v2/internal/infrastructure/postgres"
 	"lock-stock-v2/internal/usecase"
 	"lock-stock-v2/router"
@@ -21,15 +20,15 @@ import (
 
 // InitializeRouter связывает все зависимости и возвращает готовый http.Handler.
 func InitializeRouter() (http.Handler, error) {
-	roomUserRepository := inMemory.NewInMemoryRoomUserRepository()
-	joinRoomUsecase := usecase.NewJoinRoomUsecase(roomUserRepository)
 	pool, err := ProvidePostgresPool()
 	if err != nil {
 		return nil, err
 	}
+	roomUserRepository := postgres.NewPostgresRoomUserRepository(pool)
+	joinRoomUsecase := usecase.NewJoinRoomUsecase(roomUserRepository)
 	roomRepository := postgres.NewPostgresRoomRepository(pool)
 	joinRoom := handlers.NewJoinRoom(joinRoomUsecase, roomRepository)
-	userRepository := inMemory.NewInMemoryUserRepository()
+	userRepository := postgres.NewPostgresUserRepository(pool)
 	handler := router.NewRouter(joinRoom, userRepository)
 	return handler, nil
 }

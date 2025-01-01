@@ -21,11 +21,13 @@ func (s JoinRoomUsecase) JoinRoom(request usecase.JoinRoomRequest) error {
 	roomUser := internalDomain.RoomUser{}
 	roomUser.SetRoom(request.Room)
 	roomUser.SetUser(request.User)
+	log.Println(request.Room.GetRoomId())
+	log.Println(request.User.GetUserId())
 	err := s.roomUserRepository.Save(&roomUser)
 	if err != nil {
 		return err
 	}
 
-	log.Printf("usecase Player %s joined room %s\n", request.User.GetUserId(), request.Room.GetRoomId())
+	log.Printf("usecase Player %s joined room %s\n", request.User.GetUserId(), request.Room.GetRoomUid())
 	return nil
 }

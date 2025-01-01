@@ -1,5 +1,6 @@
 package domain
 
 type Room interface {
-	GetRoomId() string
+	GetRoomUid() string
+	GetRoomId() int
 }

@@ -3,6 +3,7 @@ package domain
 import "lock-stock-v2/external/domain"
 
 type RoomUser struct {
+	id   int
 	room domain.Room
 	user domain.User
 }

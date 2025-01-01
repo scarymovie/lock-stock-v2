@@ -1,9 +1,13 @@
 package domain
 
 type Room struct {
-	Id string
+	Id  int
+	Uid string
 }
 
-func (r Room) GetRoomId() string {
+func (r Room) GetRoomUid() string {
+	return r.Uid
+}
+func (r Room) GetRoomId() int {
 	return r.Id
 }

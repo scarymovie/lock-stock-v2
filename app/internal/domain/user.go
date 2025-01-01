@@ -1,9 +1,14 @@
 package domain
 
 type User struct {
-	Id string
+	Id  int
+	Uid string
 }
 
-func (u User) GetUserId() string {
+func (u User) GetUserId() int {
 	return u.Id
+}
+
+func (u User) GetUserUid() string {
+	return u.Uid
 }

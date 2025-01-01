@@ -24,7 +24,7 @@ func (repo *RoomUserRepository) Save(roomUser api.RoomUser) error {
 	}
 
 	// Генерация ключа по roomID и userID
-	key := fmt.Sprintf("%s:%s", ru.GetRoom().GetRoomId(), ru.GetUser().GetUserId())
+	key := fmt.Sprintf("%s:%s", ru.GetRoom().GetRoomUid(), ru.GetUser().GetUserUid())
 
 	repo.roomUsers[key] = ru
 	return nil

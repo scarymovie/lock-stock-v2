@@ -22,12 +22,12 @@ func NewPostgresRoomRepository(db *pgxpool.Pool) *RoomRepository {
 func (repo *RoomRepository) FindById(roomId string) (externalDomain.Room, error) {
 	var room domain.Room
 
-	query := `SELECT id FROM room WHERE id = $1`
+	query := `SELECT id, uid FROM rooms WHERE uid = $1`
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	err := repo.db.QueryRow(ctx, query, roomId).Scan(&room.Id)
+	err := repo.db.QueryRow(ctx, query, roomId).Scan(&room.Id, &room.Uid)
 	if err != nil {
 		return nil, errors.New("room not found: " + err.Error())
 	}
