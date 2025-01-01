@@ -7,8 +7,8 @@
 package wire
 
 import (
-	"lock-stock-v2/internal/domain/repository"
 	"lock-stock-v2/internal/handlers"
+	"lock-stock-v2/internal/infrastructure/inMemory"
 	"lock-stock-v2/internal/usecase"
 	"lock-stock-v2/router"
 	"net/http"
@@ -18,11 +18,11 @@ import (
 
 // InitializeRouter связывает все зависимости и возвращает готовый http.Handler.
 func InitializeRouter() (http.Handler, error) {
-	inMemoryRoomUserRepository := repository.NewInMemoryRoomUserRepository()
-	joinRoomUsecase := usecase.NewJoinRoomUsecase(inMemoryRoomUserRepository)
-	inMemoryRoomRepository := repository.NewInMemoryRoomRepository()
-	joinRoom := handlers.NewJoinRoom(joinRoomUsecase, inMemoryRoomRepository)
-	inMemoryUserRepository := repository.NewInMemoryUserRepository()
-	handler := router.NewRouter(joinRoom, inMemoryUserRepository)
+	roomUserRepository := inMemory.NewInMemoryRoomUserRepository()
+	joinRoomUsecase := usecase.NewJoinRoomUsecase(roomUserRepository)
+	roomRepository := inMemory.NewInMemoryRoomRepository()
+	joinRoom := handlers.NewJoinRoom(joinRoomUsecase, roomRepository)
+	userRepository := inMemory.NewInMemoryUserRepository()
+	handler := router.NewRouter(joinRoom, userRepository)
 	return handler, nil
 }

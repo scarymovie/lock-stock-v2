@@ -8,8 +8,8 @@ import (
 	externalDomain "lock-stock-v2/external/domain"
 	externalHandlers "lock-stock-v2/external/handlers"
 	externalUsecase "lock-stock-v2/external/usecase"
-	internalDomainRepository "lock-stock-v2/internal/domain/repository"
 	internalHandlers "lock-stock-v2/internal/handlers"
+	"lock-stock-v2/internal/infrastructure/inMemory"
 	internalUsecase "lock-stock-v2/internal/usecase"
 	"lock-stock-v2/router"
 	"net/http"
@@ -27,12 +27,12 @@ func InitializeRouter() (http.Handler, error) {
 		wire.Bind(new(externalUsecase.JoinRoom), new(*internalUsecase.JoinRoomUsecase)),
 
 		// Domain
-		internalDomainRepository.NewInMemoryRoomRepository,
-		wire.Bind(new(externalDomain.RoomFinder), new(*internalDomainRepository.InMemoryRoomRepository)),
-		internalDomainRepository.NewInMemoryUserRepository,
-		wire.Bind(new(externalDomain.UserFinder), new(*internalDomainRepository.InMemoryUserRepository)),
-		internalDomainRepository.NewInMemoryRoomUserRepository,
-		wire.Bind(new(externalDomain.RoomUserRepository), new(*internalDomainRepository.InMemoryRoomUserRepository)),
+		inMemory.NewInMemoryRoomRepository,
+		wire.Bind(new(externalDomain.RoomFinder), new(*inMemory.RoomRepository)),
+		inMemory.NewInMemoryUserRepository,
+		wire.Bind(new(externalDomain.UserFinder), new(*inMemory.UserRepository)),
+		inMemory.NewInMemoryRoomUserRepository,
+		wire.Bind(new(externalDomain.RoomUserRepository), new(*inMemory.RoomUserRepository)),
 
 		// Роутер
 		router.NewRouter,

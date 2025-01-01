@@ -1,4 +1,4 @@
-package repository
+package inMemory
 
 import (
 	"errors"
@@ -6,12 +6,12 @@ import (
 	"lock-stock-v2/internal/domain"
 )
 
-type InMemoryRoomRepository struct {
+type RoomRepository struct {
 	rooms map[string]*domain.Room
 }
 
-func NewInMemoryRoomRepository() *InMemoryRoomRepository {
-	return &InMemoryRoomRepository{
+func NewInMemoryRoomRepository() *RoomRepository {
+	return &RoomRepository{
 		rooms: map[string]*domain.Room{
 			"room1": {Id: "room1"},
 			"room2": {Id: "room2"},
@@ -20,7 +20,7 @@ func NewInMemoryRoomRepository() *InMemoryRoomRepository {
 	}
 }
 
-func (repo *InMemoryRoomRepository) FindById(roomId string) (api.Room, error) {
+func (repo *RoomRepository) FindById(roomId string) (api.Room, error) {
 	room, exists := repo.rooms[roomId]
 	if !exists {
 		return nil, errors.New("room not found")
@@ -28,7 +28,7 @@ func (repo *InMemoryRoomRepository) FindById(roomId string) (api.Room, error) {
 	return room, nil
 }
 
-func (repo *InMemoryRoomRepository) Save(room api.Room) error {
+func (repo *RoomRepository) Save(room api.Room) error {
 	r, ok := room.(*domain.Room)
 	if !ok {
 		return errors.New("invalid room type")

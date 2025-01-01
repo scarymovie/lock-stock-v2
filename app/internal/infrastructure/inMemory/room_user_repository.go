@@ -1,4 +1,4 @@
-package repository
+package inMemory
 
 import (
 	"errors"
@@ -7,17 +7,17 @@ import (
 	"lock-stock-v2/internal/domain"
 )
 
-type InMemoryRoomUserRepository struct {
+type RoomUserRepository struct {
 	roomUsers map[string]*domain.RoomUser
 }
 
-func NewInMemoryRoomUserRepository() *InMemoryRoomUserRepository {
-	return &InMemoryRoomUserRepository{
+func NewInMemoryRoomUserRepository() *RoomUserRepository {
+	return &RoomUserRepository{
 		roomUsers: make(map[string]*domain.RoomUser),
 	}
 }
 
-func (repo *InMemoryRoomUserRepository) Save(roomUser api.RoomUser) error {
+func (repo *RoomUserRepository) Save(roomUser api.RoomUser) error {
 	ru, ok := roomUser.(*domain.RoomUser)
 	if !ok {
 		return errors.New("invalid RoomUser type")
