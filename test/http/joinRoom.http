@@ -1,6 +1,6 @@
 ###
 POST http://localhost:8080/join/room/room1
 Content-Type: application/json
-X-USER-ID: user2
+Authorization: user2
 
 ###
