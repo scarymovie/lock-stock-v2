@@ -1,0 +1,22 @@
+# Нормализация конца строки
+* text=auto
+*.sh eol=lf
+*.bat eol=crlf
+
+# Исключение больших файлов из diff
+*.log -diff
+*.data -diff
+
+# Указание двоичных файлов
+*.png binary
+*.exe binary
+
+# Использование пользовательского фильтра
+*.jpg filter=compress
+
+# Настройка стратегии слияния
+*.json merge=union
+
+# Пропуск файлов в архиве
+*.secret export-ignore
+*.tmp export-ignore
