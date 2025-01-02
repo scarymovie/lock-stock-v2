@@ -34,7 +34,7 @@ func (s JoinRoomUsecase) JoinRoom(request usecase.JoinRoomRequest) error {
 		return err
 	}
 
-	log.Printf("usecase Player %s joined room %s\n", request.User.GetUserId(), request.Room.GetRoomUid())
+	log.Printf("usecase Player %s joined room %s\n", request.User.GetUserUid(), request.Room.GetRoomUid())
 
 	message := map[string]string{
 		"event":   "user_joined",
