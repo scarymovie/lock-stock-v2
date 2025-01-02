@@ -13,6 +13,7 @@ import (
 	internalHandlers "lock-stock-v2/internal/handlers"
 	internalPostgresRepository "lock-stock-v2/internal/infrastructure/postgres"
 	internalUsecase "lock-stock-v2/internal/usecase"
+	internalWebsocket "lock-stock-v2/internal/websocket"
 	"lock-stock-v2/router"
 	"net/http"
 )
@@ -30,6 +31,12 @@ func ProvidePostgresPool() (*pgxpool.Pool, error) {
 	return pool, nil
 }
 
+func ProvideWebSocketManager() *internalWebsocket.WebSocketManager {
+	manager := internalWebsocket.NewWebSocketManager()
+	go manager.Run()
+	return manager
+}
+
 // InitializeRouter связывает все зависимости и возвращает готовый http.Handler.
 func InitializeRouter() (http.Handler, error) {
 	wire.Build(
@@ -42,6 +49,10 @@ func InitializeRouter() (http.Handler, error) {
 
 		internalHandlers.NewCreateUser,
 		wire.Bind(new(externalHandlers.CreateUser), new(*internalHandlers.CreateUser)),
+
+		ProvideWebSocketManager,
+		internalHandlers.NewWebSocketHandler,
+		wire.Bind(new(externalHandlers.WebSocketHandler), new(*internalHandlers.WebSocketHandler)),
 
 		// Usecase
 		internalUsecase.NewJoinRoomUsecase,

@@ -11,6 +11,7 @@ import (
 // NewRouter принимает зависимости через Wire.
 func NewRouter(
 	joinRoom handlers.JoinRoom,
+	wsHandler handlers.WebSocketHandler,
 	userFinder domain.UserFinder,
 	createUser handlers.CreateUser,
 ) http.Handler {
@@ -25,6 +26,8 @@ func NewRouter(
 	r.With(
 		middleware.LoggingMiddleware,
 	).Post("/user/create", createUser.ServeHTTP)
+
+	r.Handle("/ws", wsHandler)
 
 	return r
 }
