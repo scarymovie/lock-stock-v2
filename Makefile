@@ -3,6 +3,10 @@ DOCKER_COMPOSE = docker compose -f docker/docker-compose.development.yml
 DOCKER_EXEC_MIGRATE = docker exec -it lock-stock-v2-migrate
 DB_URL = postgres://db_user:db_password@postgres:5432/db_database?sslmode=disable
 
+# Для первого старта
+.PHONE: init
+init: up migrate-up
+
 # Запуск контейнеров
 .PHONY: up
 up:
