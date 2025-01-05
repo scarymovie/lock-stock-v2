@@ -38,8 +38,7 @@ migrate-create:
 ifndef NAME
 	$(error NAME is not set. Usage: make migrate-create NAME=create_users_table)
 endif
-	$(DOCKER_EXEC_MIGRATE) -v $(PWD)/migrations:/migrations migrate/migrate \
-		create -ext sql -dir /migrations -seq $(NAME)
+	$(DOCKER_EXEC_MIGRATE) migrate create -ext sql -dir /migrations -seq $(NAME)
 
 # Просмотр версии миграций
 .PHONY: migrate-version
