@@ -38,13 +38,13 @@ migrate-create:
 ifndef NAME
 	$(error NAME is not set. Usage: make migrate-create NAME=create_users_table)
 endif
-	docker run --rm -v $(PWD)/migrations:/migrations migrate/migrate \
+	$(DOCKER_EXEC_MIGRATE) -v $(PWD)/migrations:/migrations migrate/migrate \
 		create -ext sql -dir /migrations -seq $(NAME)
 
 # Просмотр версии миграций
 .PHONY: migrate-version
 migrate-version:
-	$(DOCKER_EXEC_MIGRATE) -path=/migrations -database=$(DB_URL) version
+	$(DOCKER_EXEC_MIGRATE) migrate -path=/migrations -database=$(DB_URL) version
 
 # Логи проекта
 .PHONY: logs
