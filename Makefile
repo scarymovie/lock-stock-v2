@@ -10,7 +10,7 @@ init: up migrate-up
 # Запуск контейнеров
 .PHONY: up
 up:
-	$(DOCKER_COMPOSE) up -d
+	$(DOCKER_COMPOSE) up -d --build
 
 # Остановка контейнеров
 .PHONY: down
