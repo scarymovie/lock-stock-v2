@@ -5,7 +5,12 @@ DB_URL = postgres://db_user:db_password@postgres:5432/db_database?sslmode=disabl
 
 # Для первого старта
 .PHONE: init
-init: up migrate-up
+init: permissions up migrate-up
+
+
+.PHONY: permissions
+permissions:
+	sudo chown -R $(USER):$(USER) .
 
 # Запуск контейнеров
 .PHONY: up

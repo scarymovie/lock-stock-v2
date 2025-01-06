@@ -1,0 +1,25 @@
+openapi: "3.0.0"
+
+info:
+  version: 0.0.1
+  title: lock-stock
+  contact:
+    name: evgeniy vinokurov
+    email: vino.zeka@gmail.com
+
+paths:
+  /join/room/{roomId}:
+    post:
+      operationId: joinRoom
+      parameters:
+        - name: roomId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: success
+      xMiddleware:
+        - LoggingMiddleware
+        - UserAuthMiddleware
