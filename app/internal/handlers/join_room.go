@@ -56,5 +56,5 @@ func (h *JoinRoom) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
-	log.Printf("Player %s joined room %s", req.User.GetUserId(), req.Room.GetRoomUid())
+	log.Printf("Player %s joined room %s", req.User.GetUserUid(), req.Room.GetRoomUid())
 }

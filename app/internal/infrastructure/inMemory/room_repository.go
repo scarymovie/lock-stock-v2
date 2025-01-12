@@ -13,9 +13,9 @@ type RoomRepository struct {
 func NewInMemoryRoomRepository() *RoomRepository {
 	return &RoomRepository{
 		rooms: map[string]*domain.Room{
-			"room1": {Id: "room1"},
-			"room2": {Id: "room2"},
-			"room3": {Id: "room3"},
+			"room1": {Uid: "room1"},
+			"room2": {Uid: "room2"},
+			"room3": {Uid: "room3"},
 		},
 	}
 }

@@ -13,9 +13,9 @@ type UserRepository struct {
 func NewInMemoryUserRepository() *UserRepository {
 	return &UserRepository{
 		users: map[string]*domain.User{
-			"user1": {Id: "user1"},
-			"user2": {Id: "user2"},
-			"user3": {Id: "user3"},
+			"user1": {Uid: "user1"},
+			"user2": {Uid: "user2"},
+			"user3": {Uid: "user3"},
 		},
 	}
 }
@@ -34,6 +34,6 @@ func (repo *UserRepository) Save(user api.User) error {
 		return errors.New("invalid room type")
 	}
 
-	repo.users[u.GetUserId()] = u
+	repo.users[u.GetUserUid()] = u
 	return nil
 }
