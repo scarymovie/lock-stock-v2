@@ -4,19 +4,19 @@ import (
 	"encoding/json"
 	"lock-stock-v2/external/domain"
 	"lock-stock-v2/external/usecase"
+	externalWs "lock-stock-v2/external/websocket"
 	internalDomain "lock-stock-v2/internal/domain"
-	internalWs "lock-stock-v2/internal/websocket"
 	"log"
 )
 
 type JoinRoomUsecase struct {
 	roomUserRepository domain.RoomUserRepository
-	webSocketManager   *internalWs.WebSocketManager // Зависимость для публикации
+	webSocketManager   externalWs.Manager
 }
 
 func NewJoinRoomUsecase(
 	roomUserRepository domain.RoomUserRepository,
-	webSocketManager *internalWs.WebSocketManager,
+	webSocketManager externalWs.Manager,
 ) *JoinRoomUsecase {
 	return &JoinRoomUsecase{
 		roomUserRepository: roomUserRepository,

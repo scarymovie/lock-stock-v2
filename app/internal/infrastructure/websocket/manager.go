@@ -1,45 +1,39 @@
 package websocket
 
 import (
-	"github.com/gorilla/websocket"
+	"lock-stock-v2/external/websocket"
 	"log"
 	"sync"
 )
 
-type Client struct {
-	Conn   *websocket.Conn
-	Send   chan []byte
-	RoomID string
+type Manager struct {
+	Clients        map[*websocket.Client]bool
+	BroadcastChan  chan []byte
+	RegisterChan   chan *websocket.Client
+	UnregisterChan chan *websocket.Client
+	mu             sync.Mutex
 }
 
-type WebSocketManager struct {
-	Clients    map[*Client]bool
-	Broadcast  chan []byte
-	Register   chan *Client
-	Unregister chan *Client
-	mu         sync.Mutex
-}
-
-func NewWebSocketManager() *WebSocketManager {
-	return &WebSocketManager{
-		Clients:    make(map[*Client]bool),
-		Broadcast:  make(chan []byte),
-		Register:   make(chan *Client),
-		Unregister: make(chan *Client),
+func NewWebSocketManager() *Manager {
+	return &Manager{
+		Clients:        make(map[*websocket.Client]bool),
+		BroadcastChan:  make(chan []byte),
+		RegisterChan:   make(chan *websocket.Client),
+		UnregisterChan: make(chan *websocket.Client),
 	}
 }
 
-func (manager *WebSocketManager) Run() {
+func (manager *Manager) Run() {
 	for {
 		select {
-		case client := <-manager.Register:
+		case client := <-manager.RegisterChan:
 			log.Printf("Client received from register channel: %s, RoomID: %s\n", client.Conn.RemoteAddr(), client.RoomID)
 			manager.mu.Lock()
 			manager.Clients[client] = true
 			manager.mu.Unlock()
 			log.Printf("Client successfully registered: %s, RoomID: %s\n", client.Conn.RemoteAddr(), client.RoomID)
 
-		case client := <-manager.Unregister:
+		case client := <-manager.UnregisterChan:
 			log.Printf("Client received from unregister channel: %s, RoomID: %s\n", client.Conn.RemoteAddr(), client.RoomID)
 			manager.mu.Lock()
 			if _, ok := manager.Clients[client]; ok {
@@ -49,7 +43,7 @@ func (manager *WebSocketManager) Run() {
 			}
 			manager.mu.Unlock()
 
-		case message := <-manager.Broadcast:
+		case message := <-manager.BroadcastChan:
 			manager.mu.Lock()
 			log.Printf("Broadcasting message to all clients: %s\n", string(message))
 			for client := range manager.Clients {
@@ -66,7 +60,7 @@ func (manager *WebSocketManager) Run() {
 	}
 }
 
-func (manager *WebSocketManager) PublishToRoom(roomID string, message []byte) {
+func (manager *Manager) PublishToRoom(roomID string, message []byte) {
 	manager.mu.Lock()
 	defer manager.mu.Unlock()
 
@@ -89,4 +83,16 @@ func (manager *WebSocketManager) PublishToRoom(roomID string, message []byte) {
 			}
 		}
 	}
+}
+
+func (manager *Manager) Register(client *websocket.Client) {
+	manager.RegisterChan <- client
+}
+
+func (manager *Manager) Unregister(client *websocket.Client) {
+	manager.UnregisterChan <- client
+}
+
+func (manager *Manager) Broadcast(message []byte) {
+	manager.BroadcastChan <- message
 }

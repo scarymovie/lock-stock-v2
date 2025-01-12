@@ -2,16 +2,16 @@ package handlers
 
 import (
 	gorillaWs "github.com/gorilla/websocket"
-	"lock-stock-v2/internal/websocket"
+	"lock-stock-v2/external/websocket"
 	"log"
 	"net/http"
 )
 
 type WebSocketHandler struct {
-	Manager *websocket.WebSocketManager
+	Manager websocket.Manager
 }
 
-func NewWebSocketHandler(manager *websocket.WebSocketManager) *WebSocketHandler {
+func NewWebSocketHandler(manager websocket.Manager) *WebSocketHandler {
 	return &WebSocketHandler{Manager: manager}
 }
 
@@ -41,7 +41,7 @@ func (h *WebSocketHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.Printf("Registering client: %s, RoomID: %s\n", conn.RemoteAddr(), roomID)
-	h.Manager.Register <- client
+	h.Manager.Register(client)
 	log.Printf("Client sent to register channel: %s, RoomID: %s\n", conn.RemoteAddr(), roomID)
 
 	go func() {
@@ -73,7 +73,7 @@ func (h *WebSocketHandler) writeMessages(client *websocket.Client) {
 func (h *WebSocketHandler) handleMessages(client *websocket.Client) {
 	defer func() {
 		log.Printf("Unregistering client: %s, RoomID: %s\n", client.Conn.RemoteAddr(), client.RoomID)
-		h.Manager.Unregister <- client
+		h.Manager.Unregister(client)
 		client.Conn.Close()
 	}()
 
@@ -84,6 +84,6 @@ func (h *WebSocketHandler) handleMessages(client *websocket.Client) {
 			break
 		}
 		log.Printf("Message received from client: %s, Message: %s\n", client.Conn.RemoteAddr(), string(message))
-		h.Manager.Broadcast <- message
+		h.Manager.Broadcast(message)
 	}
 }

@@ -9,28 +9,28 @@ package wire
 import (
 	"errors"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"lock-stock-v2/external/websocket"
 	"lock-stock-v2/internal/handlers"
 	"lock-stock-v2/internal/infrastructure/postgres"
+	websocket2 "lock-stock-v2/internal/infrastructure/websocket"
 	"lock-stock-v2/internal/usecase"
-	"lock-stock-v2/internal/websocket"
 	"lock-stock-v2/router"
 	"net/http"
 )
 
 // Injectors from wire.go:
 
-// InitializeRouter связывает все зависимости и возвращает готовый http.Handler.
 func InitializeRouter() (http.Handler, error) {
 	pool, err := ProvidePostgresPool()
 	if err != nil {
 		return nil, err
 	}
 	roomUserRepository := postgres.NewPostgresRoomUserRepository(pool)
-	webSocketManager := ProvideWebSocketManager()
-	joinRoomUsecase := usecase.NewJoinRoomUsecase(roomUserRepository, webSocketManager)
+	manager := ProvideWebSocketManager()
+	joinRoomUsecase := usecase.NewJoinRoomUsecase(roomUserRepository, manager)
 	roomRepository := postgres.NewPostgresRoomRepository(pool)
 	joinRoom := handlers.NewJoinRoom(joinRoomUsecase, roomRepository)
-	webSocketHandler := handlers.NewWebSocketHandler(webSocketManager)
+	webSocketHandler := handlers.NewWebSocketHandler(manager)
 	userRepository := postgres.NewPostgresUserRepository(pool)
 	createUser := handlers.NewCreateUser(userRepository)
 	handler := router.NewRouter(joinRoom, webSocketHandler, userRepository, createUser)
@@ -51,8 +51,8 @@ func ProvidePostgresPool() (*pgxpool.Pool, error) {
 	return pool, nil
 }
 
-func ProvideWebSocketManager() *websocket.WebSocketManager {
-	manager := websocket.NewWebSocketManager()
+func ProvideWebSocketManager() websocket.Manager {
+	manager := websocket2.NewWebSocketManager()
 	go manager.Run()
 	return manager
 }

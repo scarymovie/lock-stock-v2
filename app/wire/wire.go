@@ -10,10 +10,11 @@ import (
 	externalDomain "lock-stock-v2/external/domain"
 	externalHandlers "lock-stock-v2/external/handlers"
 	externalUsecase "lock-stock-v2/external/usecase"
+	externalWebSocket "lock-stock-v2/external/websocket"
 	internalHandlers "lock-stock-v2/internal/handlers"
 	internalPostgresRepository "lock-stock-v2/internal/infrastructure/postgres"
+	internalWebSocket "lock-stock-v2/internal/infrastructure/websocket"
 	internalUsecase "lock-stock-v2/internal/usecase"
-	internalWebsocket "lock-stock-v2/internal/websocket"
 	"lock-stock-v2/router"
 	"net/http"
 )
@@ -31,13 +32,12 @@ func ProvidePostgresPool() (*pgxpool.Pool, error) {
 	return pool, nil
 }
 
-func ProvideWebSocketManager() *internalWebsocket.WebSocketManager {
-	manager := internalWebsocket.NewWebSocketManager()
+func ProvideWebSocketManager() externalWebSocket.Manager {
+	manager := internalWebSocket.NewWebSocketManager()
 	go manager.Run()
 	return manager
 }
 
-// InitializeRouter связывает все зависимости и возвращает готовый http.Handler.
 func InitializeRouter() (http.Handler, error) {
 	wire.Build(
 		// Подключение к PostgreSQL
@@ -50,6 +50,7 @@ func InitializeRouter() (http.Handler, error) {
 		internalHandlers.NewCreateUser,
 		wire.Bind(new(externalHandlers.CreateUser), new(*internalHandlers.CreateUser)),
 
+		// WebSocket
 		ProvideWebSocketManager,
 		internalHandlers.NewWebSocketHandler,
 		wire.Bind(new(externalHandlers.WebSocketHandler), new(*internalHandlers.WebSocketHandler)),
