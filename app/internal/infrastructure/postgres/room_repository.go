@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"errors"
+	"fmt"
 	externalDomain "lock-stock-v2/external/domain"
 	"lock-stock-v2/internal/domain"
 	"time"
@@ -33,4 +34,50 @@ func (repo *RoomRepository) FindById(roomId string) (externalDomain.Room, error)
 	}
 
 	return &room, nil
+}
+
+func (repo *RoomRepository) GetAll() ([]externalDomain.Room, error) {
+	query := `SELECT id, uid FROM rooms`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	rows, err := repo.db.Query(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var rooms []externalDomain.Room
+	for rows.Next() {
+		var r domain.Room
+		if err := rows.Scan(&r.Id, &r.Uid); err != nil {
+			return nil, err
+		}
+		rooms = append(rooms, &r)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return rooms, nil
+}
+
+func (repo *RoomRepository) Save(room externalDomain.Room) error {
+	query := `
+		INSERT INTO rooms (uid)
+		VALUES ($1)
+		ON CONFLICT (uid) DO NOTHING
+	`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	_, err := repo.db.Exec(ctx, query, room.GetRoomUid())
+	if err != nil {
+		return fmt.Errorf("failed to save room: %w", err)
+	}
+
+	return nil
 }

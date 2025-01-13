@@ -9,9 +9,9 @@ import (
 	"net/http"
 )
 
-// NewRouter принимает зависимости через Wire.
 func NewRouter(
 	joinRoom handlers.JoinRoom,
+	getAllRooms handlers.GetRooms,
 	wsHandler handlers.WebSocketHandler,
 	userFinder domain.UserFinder,
 	createUser handlers.CreateUser,
@@ -26,11 +26,13 @@ func NewRouter(
 		MaxAge:           300,
 	}))
 
-	// Использование нескольких middleware.
 	r.With(
 		middleware.LoggingMiddleware,
 		middleware.UserAuthMiddleware(userFinder),
-	).Post("/join/room/{roomId}", joinRoom.ServeHTTP)
+	).Route("/room", func(r chi.Router) {
+		r.Post("/join/{roomId}", joinRoom.ServeHTTP)
+		r.Post("/list", getAllRooms.ServeHTTP)
+	})
 
 	r.With(
 		middleware.LoggingMiddleware,

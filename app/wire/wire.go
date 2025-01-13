@@ -50,6 +50,9 @@ func InitializeRouter() (http.Handler, error) {
 		internalHandlers.NewCreateUser,
 		wire.Bind(new(externalHandlers.CreateUser), new(*internalHandlers.CreateUser)),
 
+		internalHandlers.NewGetRooms,
+		wire.Bind(new(externalHandlers.GetRooms), new(*internalHandlers.GetRooms)),
+
 		// WebSocket
 		ProvideWebSocketManager,
 		internalHandlers.NewWebSocketHandler,
