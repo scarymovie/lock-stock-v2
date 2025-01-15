@@ -33,6 +33,7 @@ func (h *CreateUser) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	response := map[string]string{
 		"user_id": user.GetUserUid(),
+		"name":    user.GetUserName(),
 	}
 
 	w.Header().Set("Content-Type", "application/json")
