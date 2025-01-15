@@ -2,29 +2,35 @@ package handlers
 
 import (
 	"encoding/json"
-	"github.com/google/uuid"
-	"lock-stock-v2/external/domain"
-	internalDomain "lock-stock-v2/internal/domain"
+	"fmt"
+	"lock-stock-v2/external/usecase"
 	"log"
 	"net/http"
 )
 
 type CreateUser struct {
-	userRepository domain.UserRepository
+	createUser usecase.CreateUser
 }
 
-func NewCreateUser(userRepository domain.UserRepository) *CreateUser {
-	return &CreateUser{userRepository: userRepository}
+func NewCreateUser(createUser usecase.CreateUser) *CreateUser {
+	return &CreateUser{createUser: createUser}
 }
 
 func (h *CreateUser) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	var user = internalDomain.User{
-		Uid: uuid.New().String(),
-	}
-	err := h.userRepository.SaveUser(user)
-	if err != nil {
+	var rawUser usecase.RawCreateUser
+
+	if err := json.NewDecoder(r.Body).Decode(&rawUser); err != nil {
+		http.Error(w, "Bad Request: "+err.Error(), http.StatusBadRequest)
 		return
 	}
+
+	user, err := h.createUser.Do(rawUser)
+	if err != nil {
+		fmt.Printf("Ошибка при создании пользователя: %v", err)
+		http.Error(w, "Failed to create user", http.StatusInternalServerError)
+		return
+	}
+
 	response := map[string]string{
 		"user_id": user.GetUserUid(),
 	}

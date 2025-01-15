@@ -62,6 +62,9 @@ func InitializeRouter() (http.Handler, error) {
 		internalUsecase.NewJoinRoomUsecase,
 		wire.Bind(new(externalUsecase.JoinRoom), new(*internalUsecase.JoinRoomUsecase)),
 
+		internalUsecase.NewCreateUser,
+		wire.Bind(new(externalUsecase.CreateUser), new(*internalUsecase.CreateUser)),
+
 		// Domain
 		internalPostgresRepository.NewPostgresRoomRepository,
 		wire.Bind(new(externalDomain.RoomFinder), new(*internalPostgresRepository.RoomRepository)),

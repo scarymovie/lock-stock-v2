@@ -33,8 +33,9 @@ func InitializeRouter() (http.Handler, error) {
 	getRooms := handlers.NewGetRooms(roomRepository)
 	webSocketHandler := handlers.NewWebSocketHandler(manager)
 	userRepository := postgres.NewPostgresUserRepository(pool)
-	createUser := handlers.NewCreateUser(userRepository)
-	handler := router.NewRouter(joinRoom, getRooms, webSocketHandler, userRepository, createUser)
+	createUser := usecase.NewCreateUser(userRepository)
+	handlersCreateUser := handlers.NewCreateUser(createUser)
+	handler := router.NewRouter(joinRoom, getRooms, webSocketHandler, userRepository, handlersCreateUser)
 	return handler, nil
 }
 
