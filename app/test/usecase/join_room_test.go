@@ -17,7 +17,7 @@ func TestJoinRoom_Success(t *testing.T) {
 	require.Equal(t, 0, deps.RoomRepo.Count())
 	require.Equal(t, 0, deps.RoomUserRepo.Count())
 
-	user := FakeUser("user-123")
+	user := FakeUser("user-123", "user-name")
 	room := FakeRoom("room-456")
 
 	deps.UserRepo.SaveUser(user)

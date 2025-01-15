@@ -17,3 +17,10 @@ func (u User) GetUserUid() string {
 func (u User) GetUserName() string {
 	return u.Name
 }
+
+func (u User) SetUserUid(uid string) {
+	u.Uid = uid
+}
+func (u User) SetUserName(name string) {
+	u.Name = name
+}

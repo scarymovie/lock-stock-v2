@@ -19,7 +19,7 @@ func NewInMemoryUserRepository() *UserRepository {
 func (repo *UserRepository) FindById(userId string) (api.User, error) {
 	user, exists := repo.users[userId]
 	if !exists {
-		return nil, errors.New("room not found")
+		return nil, errors.New("user not found")
 	}
 	return user, nil
 }
@@ -27,7 +27,7 @@ func (repo *UserRepository) FindById(userId string) (api.User, error) {
 func (repo *UserRepository) SaveUser(user api.User) error {
 	u, ok := user.(*domain.User)
 	if !ok {
-		return errors.New("invalid room type")
+		return errors.New("invalid user type")
 	}
 
 	repo.users[u.GetUserUid()] = u

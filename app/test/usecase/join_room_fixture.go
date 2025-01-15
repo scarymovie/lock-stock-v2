@@ -4,10 +4,11 @@ import (
 	"lock-stock-v2/internal/domain"
 )
 
-func FakeUser(uid string) *domain.User {
+func FakeUser(uid string, name string) *domain.User {
 	return &domain.User{
-		Uid: uid,
-		Id:  1,
+		Uid:  uid,
+		Id:   1,
+		Name: name,
 	}
 }
 

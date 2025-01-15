@@ -21,7 +21,7 @@ func (cu *CreateUser) Do(RawUser usecase.RawCreateUser) (domain.User, error) {
 		Name: RawUser.Name,
 	}
 
-	if err := cu.userRepository.SaveUser(newUser); err != nil {
+	if err := cu.userRepository.SaveUser(&newUser); err != nil {
 		return nil, err
 	}
 

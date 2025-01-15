@@ -35,19 +35,24 @@ func (repo *UserRepository) FindById(userId string) (externalDomain.User, error)
 }
 
 func (repo *UserRepository) SaveUser(user externalDomain.User) error {
+	u, ok := user.(*internalDomain.User)
+	if !ok {
+		return errors.New("invalid RoomUser type")
+	}
 
 	query := `
-		INSERT INTO users (uid)
-		VALUES ($1)
-		ON CONFLICT (uid) DO NOTHING
-	`
+        INSERT INTO users (uid, name)
+        VALUES ($1, $2)
+        ON CONFLICT (uid) DO UPDATE
+        SET name = EXCLUDED.name
+    `
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	_, err := repo.db.Exec(ctx, query, user.GetUserUid())
+	_, err := repo.db.Exec(ctx, query, u.GetUserUid(), u.GetUserName())
 	if err != nil {
-		return fmt.Errorf("failed to save RoomUser: %w", err)
+		return fmt.Errorf("failed to save user: %w", err)
 	}
 
 	return nil
