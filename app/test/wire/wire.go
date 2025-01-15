@@ -24,6 +24,11 @@ type TestJoinRoomResult struct {
 	WsManager    externalWs.Manager
 }
 
+type TestCreateUserResult struct {
+	CreateUser externalUsecase.CreateUser
+	UserRepo   *inMemory.UserRepository
+}
+
 func ProvideInMemoryRoomRepository() *inMemory.RoomRepository {
 	return inMemory.NewInMemoryRoomRepository()
 }
@@ -59,7 +64,23 @@ var testSetWithStruct = wire.NewSet(
 	wire.Struct(new(TestJoinRoomResult), "*"),
 )
 
+var testSetCreateUser = wire.NewSet(
+
+	ProvideInMemoryUserRepository,
+	wire.Bind(new(externalDomain.UserRepository), new(*inMemory.UserRepository)),
+
+	internalUsecase.NewCreateUser,
+	wire.Bind(new(externalUsecase.CreateUser), new(*internalUsecase.CreateUser)),
+
+	wire.Struct(new(TestCreateUserResult), "*"),
+)
+
 func InitializeTestJoinRoomResult() TestJoinRoomResult {
 	wire.Build(testSetWithStruct)
 	return TestJoinRoomResult{}
+}
+
+func InitializeTestCreateUserResult() TestCreateUserResult {
+	wire.Build(testSetCreateUser)
+	return TestCreateUserResult{}
 }
