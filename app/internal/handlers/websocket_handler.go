@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"github.com/go-chi/chi/v5"
 	gorillaWs "github.com/gorilla/websocket"
 	"lock-stock-v2/external/websocket"
 	"log"
@@ -27,7 +28,7 @@ func (h *WebSocketHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Получение идентификатора комнаты из URL или заголовка
-	roomID := r.URL.Query().Get("room_id") // Например, ?room_id=test
+	roomID := chi.URLParam(r, "roomId")
 	if roomID == "" {
 		conn.WriteMessage(gorillaWs.TextMessage, []byte("Missing room_id"))
 		conn.Close()

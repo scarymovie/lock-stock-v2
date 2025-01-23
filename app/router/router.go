@@ -20,7 +20,7 @@ func NewRouter(
 
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   []string{"http://localhost:3000"},
-		AllowedMethods:   []string{"POST"},
+		AllowedMethods:   []string{"GET", "POST"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
 		AllowCredentials: true,
 		MaxAge:           300,
@@ -38,7 +38,7 @@ func NewRouter(
 		middleware.LoggingMiddleware,
 	).Post("/user/create", createUser.ServeHTTP)
 
-	r.Handle("/ws", wsHandler)
+	r.Handle("/ws/{roomId}", wsHandler)
 
 	return r
 }
