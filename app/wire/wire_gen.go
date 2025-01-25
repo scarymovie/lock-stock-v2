@@ -29,7 +29,7 @@ func InitializeRouter() (http.Handler, error) {
 	manager := ProvideWebSocketManager()
 	joinRoomUsecase := usecase.NewJoinRoomUsecase(roomUserRepository, manager)
 	roomRepository := postgres.NewPostgresRoomRepository(pool)
-	joinRoom := handlers.NewJoinRoom(joinRoomUsecase, roomRepository)
+	joinRoom := handlers.NewJoinRoom(joinRoomUsecase, roomRepository, roomUserRepository)
 	getRooms := handlers.NewGetRooms(roomRepository)
 	webSocketHandler := handlers.NewWebSocketHandler(manager)
 	userRepository := postgres.NewPostgresUserRepository(pool)

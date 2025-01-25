@@ -23,11 +23,26 @@ func (repo *RoomUserRepository) Save(roomUser api.RoomUser) error {
 		return errors.New("invalid RoomUser type")
 	}
 
-	// Генерация ключа по roomID и userID
 	key := fmt.Sprintf("%s:%s", ru.GetRoom().GetRoomUid(), ru.GetUser().GetUserUid())
 
 	repo.roomUsers[key] = ru
 	return nil
+}
+
+func (repo *RoomUserRepository) FindByRoom(room api.Room) ([]api.RoomUser, error) {
+	roomUid := room.GetRoomUid()
+
+	var result []api.RoomUser
+	for _, ru := range repo.roomUsers {
+		if ru.GetRoom().GetRoomUid() == roomUid {
+			result = append(result, ru)
+		}
+	}
+	if len(result) == 0 {
+		return nil, errors.New("no users found in room")
+	}
+
+	return result, nil
 }
 
 func (repo *RoomUserRepository) Count() int {
