@@ -17,7 +17,7 @@ func NewGetRooms(roomFinder externalDomain.RoomFinder) *GetRooms {
 }
 
 func (g *GetRooms) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	rooms, err := g.roomFinder.GetAll()
+	rooms, err := g.roomFinder.GetPending()
 	if err != nil {
 		http.Error(w, "Failed to get rooms: "+err.Error(), http.StatusInternalServerError)
 		return

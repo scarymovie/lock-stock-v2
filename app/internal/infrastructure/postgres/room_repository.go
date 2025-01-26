@@ -35,8 +35,8 @@ func (repo *RoomRepository) FindById(roomId string) (externalDomain.Room, error)
 	return &room, nil
 }
 
-func (repo *RoomRepository) GetAll() ([]externalDomain.Room, error) {
-	query := `SELECT id, uid FROM rooms`
+func (repo *RoomRepository) GetPending() ([]externalDomain.Room, error) {
+	query := `SELECT * FROM rooms where rooms.status = 'pending'`
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -50,7 +50,7 @@ func (repo *RoomRepository) GetAll() ([]externalDomain.Room, error) {
 	var rooms []externalDomain.Room
 	for rows.Next() {
 		var r domain.Room
-		if err := rows.Scan(&r.Id, &r.Uid); err != nil {
+		if err := rows.Scan(&r.Id, &r.Uid, &r.Status); err != nil {
 			return nil, err
 		}
 		rooms = append(rooms, &r)
