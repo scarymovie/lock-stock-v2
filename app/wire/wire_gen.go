@@ -10,6 +10,7 @@ import (
 	"errors"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"lock-stock-v2/external/websocket"
+	"lock-stock-v2/internal/domain/service"
 	"lock-stock-v2/internal/handlers"
 	"lock-stock-v2/internal/infrastructure/postgres"
 	websocket2 "lock-stock-v2/internal/infrastructure/websocket"
@@ -29,22 +30,23 @@ func InitializeRouter() (http.Handler, error) {
 	manager := ProvideWebSocketManager()
 	joinRoomUsecase := usecase.NewJoinRoomUsecase(roomUserRepository, manager)
 	roomRepository := postgres.NewPostgresRoomRepository(pool)
-	joinRoom := handlers.NewJoinRoom(joinRoomUsecase, roomRepository, roomUserRepository)
+	roomUserService := services.NewRoomService(roomUserRepository)
+	joinRoom := handlers.NewJoinRoom(joinRoomUsecase, roomRepository, roomUserService)
 	getRooms := handlers.NewGetRooms(roomRepository)
 	webSocketHandler := handlers.NewWebSocketHandler(manager)
 	userRepository := postgres.NewPostgresUserRepository(pool)
 	createUser := usecase.NewCreateUser(userRepository)
 	handlersCreateUser := handlers.NewCreateUser(createUser)
-	handler := router.NewRouter(joinRoom, getRooms, webSocketHandler, userRepository, handlersCreateUser)
+	startGameUsecase := usecase.NewStartGameUsecase(roomRepository, manager)
+	startGame := handlers.NewStartGame(roomRepository, roomUserService, startGameUsecase)
+	handler := router.NewRouter(joinRoom, getRooms, webSocketHandler, userRepository, handlersCreateUser, startGame)
 	return handler, nil
 }
 
 // wire.go:
 
 func ProvidePostgresPool() (*pgxpool.Pool, error) {
-
 	config := postgres.GetPostgresConfig()
-
 	pool := postgres.NewPostgresConnection(config)
 	if pool == nil {
 		return nil, errors.New("failed to create postgres pool")

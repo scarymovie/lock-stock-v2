@@ -11,6 +11,7 @@ import (
 	externalHandlers "lock-stock-v2/external/handlers"
 	externalUsecase "lock-stock-v2/external/usecase"
 	externalWebSocket "lock-stock-v2/external/websocket"
+	internalDomainService "lock-stock-v2/internal/domain/service"
 	internalHandlers "lock-stock-v2/internal/handlers"
 	internalPostgresRepository "lock-stock-v2/internal/infrastructure/postgres"
 	internalWebSocket "lock-stock-v2/internal/infrastructure/websocket"
@@ -20,10 +21,7 @@ import (
 )
 
 func ProvidePostgresPool() (*pgxpool.Pool, error) {
-	// Получаем конфигурацию
 	config := internalPostgresRepository.GetPostgresConfig()
-
-	// Создаем подключение
 	pool := internalPostgresRepository.NewPostgresConnection(config)
 	if pool == nil {
 		return nil, errors.New("failed to create postgres pool")
@@ -41,7 +39,10 @@ func ProvideWebSocketManager() externalWebSocket.Manager {
 func InitializeRouter() (http.Handler, error) {
 	wire.Build(
 		// Подключение к PostgreSQL
-		ProvidePostgresPool, // Провайдер для подключения
+		ProvidePostgresPool,
+
+		// Services
+		internalDomainService.NewRoomService,
 
 		// Handlers
 		internalHandlers.NewJoinRoom,
@@ -52,6 +53,9 @@ func InitializeRouter() (http.Handler, error) {
 
 		internalHandlers.NewGetRooms,
 		wire.Bind(new(externalHandlers.GetRooms), new(*internalHandlers.GetRooms)),
+
+		internalHandlers.NewStartGame,
+		wire.Bind(new(externalHandlers.StartGame), new(*internalHandlers.StartGame)),
 
 		// WebSocket
 		ProvideWebSocketManager,
@@ -65,9 +69,13 @@ func InitializeRouter() (http.Handler, error) {
 		internalUsecase.NewCreateUser,
 		wire.Bind(new(externalUsecase.CreateUser), new(*internalUsecase.CreateUser)),
 
+		internalUsecase.NewStartGameUsecase,
+		wire.Bind(new(externalUsecase.StartGame), new(*internalUsecase.StartGameUsecase)),
+
 		// Domain
 		internalPostgresRepository.NewPostgresRoomRepository,
 		wire.Bind(new(externalDomain.RoomFinder), new(*internalPostgresRepository.RoomRepository)),
+		wire.Bind(new(externalDomain.RoomRepository), new(*internalPostgresRepository.RoomRepository)),
 
 		internalPostgresRepository.NewPostgresUserRepository,
 		wire.Bind(new(externalDomain.UserFinder), new(*internalPostgresRepository.UserRepository)),

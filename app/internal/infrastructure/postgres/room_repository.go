@@ -19,7 +19,6 @@ func NewPostgresRoomRepository(db *pgxpool.Pool) *RoomRepository {
 	return &RoomRepository{db: db}
 }
 
-// FindById ищет комнату по ID.
 func (repo *RoomRepository) FindById(roomId string) (externalDomain.Room, error) {
 	var room domain.Room
 
@@ -77,6 +76,24 @@ func (repo *RoomRepository) Save(room externalDomain.Room) error {
 	_, err := repo.db.Exec(ctx, query, room.GetRoomUid())
 	if err != nil {
 		return fmt.Errorf("failed to save room: %w", err)
+	}
+
+	return nil
+}
+
+func (repo *RoomRepository) UpdateRoomStatus(room externalDomain.Room) error {
+	query := `
+		UPDATE rooms
+		SET status = $1
+		WHERE uid = $2
+	`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	_, err := repo.db.Exec(ctx, query, room.GetRoomStatus(), room.GetRoomUid())
+	if err != nil {
+		return fmt.Errorf("failed to update room: %w", err)
 	}
 
 	return nil

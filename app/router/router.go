@@ -15,6 +15,7 @@ func NewRouter(
 	wsHandler handlers.WebSocketHandler,
 	userFinder domain.UserFinder,
 	createUser handlers.CreateUser,
+	startGame handlers.StartGame,
 ) http.Handler {
 	r := chi.NewRouter()
 
@@ -32,6 +33,7 @@ func NewRouter(
 	).Route("/room", func(r chi.Router) {
 		r.Post("/join/{roomId}", joinRoom.ServeHTTP)
 		r.Post("/list", getAllRooms.ServeHTTP)
+		r.Post("/start/{roomId}", startGame.ServeHTTP)
 	})
 
 	r.With(

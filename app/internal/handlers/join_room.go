@@ -5,94 +5,57 @@ import (
 	"github.com/go-chi/chi/v5"
 	"lock-stock-v2/external/domain"
 	"lock-stock-v2/external/usecase"
+	services "lock-stock-v2/internal/domain/service"
+	"lock-stock-v2/internal/handlers/helpers"
 	httpResponse "lock-stock-v2/internal/handlers/response"
-	"lock-stock-v2/middleware"
-	"log"
 	"net/http"
 )
 
 type JoinRoom struct {
-	joinRoomUseCase     usecase.JoinRoom
-	roomFinder          domain.RoomFinder
-	roomUsersRepository domain.RoomUserRepository
+	joinRoomUseCase usecase.JoinRoom
+	roomFinder      domain.RoomFinder
+	roomUserService *services.RoomUserService
 }
 
-func NewJoinRoom(u usecase.JoinRoom, roomFinder domain.RoomFinder, RoomUserRepository domain.RoomUserRepository) *JoinRoom {
-	return &JoinRoom{joinRoomUseCase: u, roomFinder: roomFinder, roomUsersRepository: RoomUserRepository}
+func NewJoinRoom(u usecase.JoinRoom, roomFinder domain.RoomFinder, roomUserService *services.RoomUserService) *JoinRoom {
+	return &JoinRoom{joinRoomUseCase: u, roomFinder: roomFinder, roomUserService: roomUserService}
 }
 
-// ServeHTTP - метод, реализующий интерфейс handlers.JoinRoom.
 func (h *JoinRoom) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	roomID := chi.URLParam(r, "roomId")
-	if roomID == "" {
-		http.Error(w, "Room ID is required", http.StatusBadRequest)
-		return
-	}
-
-	room, err := h.roomFinder.FindById(roomID)
+	room, err := helpers.GetRoomById(h.roomFinder, roomID)
 	if err != nil {
-		log.Println("FindById error:", err)
-		http.Error(w, "Failed to find room", http.StatusNotFound)
+		http.Error(w, err.Error(), err.(*helpers.RoomNotFoundError).Code)
 		return
 	}
 
-	if room == nil || room.GetRoomId() == 0 {
-		log.Printf("Room %v does not exist or invalid\n", roomID)
-		http.Error(w, "Room does not exist or invalid", http.StatusNotFound)
-		return
-	}
-
-	log.Printf("Room retrieved: ID=%d, UID=%s", room.GetRoomId(), room.GetRoomUid())
-
-	user, err := middleware.GetUserFromContext(r.Context())
+	user, err := helpers.GetUserFromRequest(r)
 	if err != nil {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		http.Error(w, err.Error(), err.(*helpers.UserNotFoundError).Code)
 		return
 	}
 
-	log.Println(roomID)
-	log.Println(user.GetUserId())
-
-	req := usecase.JoinRoomRequest{
-		User: user,
-		Room: room,
-	}
-
-	err = h.joinRoomUseCase.JoinRoom(req)
-	if err != nil {
+	req := usecase.JoinRoomRequest{User: user, Room: room}
+	if err := h.joinRoomUseCase.JoinRoom(req); err != nil {
 		http.Error(w, "Failed to join room: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	log.Printf("roomId before finder %d", room.GetRoomId())
-	log.Printf("Handler Room type: %T, value: %+v", room, room)
-
-	roomUsers, err := h.roomUsersRepository.FindByRoom(room)
-
+	roomUsers, err := h.roomUserService.GetUsersByRoom(room)
 	if err != nil {
-		log.Println("FindByRoom error:", err)
-		http.Error(w, "No users found in room", http.StatusOK)
+		http.Error(w, "Failed to get users in room: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	var response []httpResponse.RoomUserResponse
 	for _, ru := range roomUsers {
-		respItem := httpResponse.RoomUserResponse{
+		response = append(response, httpResponse.RoomUserResponse{
 			RoomUid:  ru.GetRoom().GetRoomUid(),
 			UserUid:  ru.GetUser().GetUserUid(),
 			UserName: ru.GetUser().GetUserName(),
-		}
-		response = append(response, respItem)
+		})
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		log.Println("Failed to encode roomUsers:", err)
-		http.Error(w, "Error encoding response", http.StatusInternalServerError)
-		return
-	}
-
-	log.Printf("Player %s joined room %s", req.User.GetUserUid(), req.Room.GetRoomUid())
+	json.NewEncoder(w).Encode(response)
 }
