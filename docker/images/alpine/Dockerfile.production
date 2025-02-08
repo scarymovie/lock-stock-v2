@@ -2,7 +2,7 @@ ARG GO_DOCKER_VERSION=1.23.4
 
 FROM golang:${GO_DOCKER_VERSION}-alpine AS builder
 
-RUN apk add --no-cache git
+RUN apk add --no-cache git ca-certificates
 
 ENV APP_SRC=/go/src \
     APP_BIN=/go/bin \
@@ -16,6 +16,8 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . .
+
+RUN go test ./... -v
 
 RUN go build -o ${APP_BIN}/app ${APP_SRC}/cmd/app/main.go
 
