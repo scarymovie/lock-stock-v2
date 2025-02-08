@@ -10,8 +10,8 @@ import (
 	"errors"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"lock-stock-v2/external/websocket"
+	"lock-stock-v2/handlers"
 	"lock-stock-v2/internal/domain/service"
-	"lock-stock-v2/internal/handlers"
 	"lock-stock-v2/internal/infrastructure/postgres"
 	websocket2 "lock-stock-v2/internal/infrastructure/websocket"
 	"lock-stock-v2/internal/usecase"
@@ -39,7 +39,7 @@ func InitializeRouter() (http.Handler, error) {
 	handlersCreateUser := handlers.NewCreateUser(createUser)
 	startGameUsecase := usecase.NewStartGameUsecase(roomRepository, manager)
 	startGame := handlers.NewStartGame(roomRepository, roomUserService, startGameUsecase)
-	handler := router.NewRouter(joinRoom, getRooms, webSocketHandler, userRepository, handlersCreateUser, startGame)
+	handler := router.NewRouter(joinRoom, getRooms, webSocketHandler, handlersCreateUser, startGame, userRepository)
 	return handler, nil
 }
 

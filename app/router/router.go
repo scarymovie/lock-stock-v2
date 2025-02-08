@@ -4,19 +4,19 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/cors"
 	"lock-stock-v2/external/domain"
-	"lock-stock-v2/external/handlers"
+	"lock-stock-v2/handlers"
 	"lock-stock-v2/middleware"
 	"log"
 	"net/http"
 )
 
 func NewRouter(
-	joinRoom handlers.JoinRoom,
-	getAllRooms handlers.GetRooms,
-	wsHandler handlers.WebSocketHandler,
+	joinRoom *handlers.JoinRoom,
+	getAllRooms *handlers.GetRooms,
+	wsHandler *handlers.WebSocketHandler,
+	createUser *handlers.CreateUser,
+	startGame *handlers.StartGame,
 	userFinder domain.UserFinder,
-	createUser handlers.CreateUser,
-	startGame handlers.StartGame,
 ) http.Handler {
 	r := chi.NewRouter()
 
@@ -34,14 +34,14 @@ func NewRouter(
 		middleware.LoggingMiddleware,
 		middleware.UserAuthMiddleware(userFinder),
 	).Route("/room", func(r chi.Router) {
-		r.Post("/join/{roomId}", joinRoom.ServeHTTP)
-		r.Post("/list", getAllRooms.ServeHTTP)
-		r.Post("/start/{roomId}", startGame.ServeHTTP)
+		r.Post("/join/{roomId}", joinRoom.Do)
+		r.Post("/list", getAllRooms.Do)
+		r.Post("/start/{roomId}", startGame.Do)
 	})
 
 	r.With(
 		middleware.LoggingMiddleware,
-	).Post("/user/create", createUser.ServeHTTP)
+	).Post("/user/create", createUser.Do)
 
 	r.Handle("/ws/{roomId}", wsHandler)
 

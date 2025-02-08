@@ -5,8 +5,8 @@ import (
 	"github.com/go-chi/chi/v5"
 	"lock-stock-v2/external/domain"
 	"lock-stock-v2/external/usecase"
+	"lock-stock-v2/handlers/helpers"
 	services "lock-stock-v2/internal/domain/service"
-	"lock-stock-v2/internal/handlers/helpers"
 	"net/http"
 )
 
@@ -20,7 +20,7 @@ func NewStartGame(roomFinder domain.RoomFinder, roomUserService *services.RoomUs
 	return &StartGame{roomFinder: roomFinder, roomUserService: roomUserService, startGameUsecase: startGameUsecase}
 }
 
-func (h *StartGame) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *StartGame) Do(w http.ResponseWriter, r *http.Request) {
 	roomID := chi.URLParam(r, "roomId")
 	room, err := helpers.GetRoomById(h.roomFinder, roomID)
 	if err != nil {

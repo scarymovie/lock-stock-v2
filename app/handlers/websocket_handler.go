@@ -27,7 +27,6 @@ func (h *WebSocketHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Получение идентификатора комнаты из URL или заголовка
 	roomID := chi.URLParam(r, "roomId")
 	if roomID == "" {
 		conn.WriteMessage(gorillaWs.TextMessage, []byte("Missing room_id"))

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"lock-stock-v2/external/usecase"
+	"lock-stock-v2/handlers/response"
 	"log"
 	"net/http"
 )
@@ -16,7 +17,7 @@ func NewCreateUser(createUser usecase.CreateUser) *CreateUser {
 	return &CreateUser{createUser: createUser}
 }
 
-func (h *CreateUser) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *CreateUser) Do(w http.ResponseWriter, r *http.Request) {
 	var rawUser usecase.RawCreateUser
 
 	if err := json.NewDecoder(r.Body).Decode(&rawUser); err != nil {
@@ -31,15 +32,15 @@ func (h *CreateUser) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response := map[string]string{
-		"user_id": user.Uid(),
-		"name":    user.Name(),
+	responseData := response.User{
+		UserUid: user.Uid(),
+		Name:    user.Name(),
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 
-	if err = json.NewEncoder(w).Encode(response); err != nil {
+	if err = json.NewEncoder(w).Encode(responseData); err != nil {
 		log.Printf("Ошибка при отправке ответа: %v", err)
 	}
 

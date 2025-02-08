@@ -5,9 +5,9 @@ import (
 	"github.com/go-chi/chi/v5"
 	"lock-stock-v2/external/domain"
 	"lock-stock-v2/external/usecase"
+	"lock-stock-v2/handlers/helpers"
+	httpResponse "lock-stock-v2/handlers/response"
 	services "lock-stock-v2/internal/domain/service"
-	"lock-stock-v2/internal/handlers/helpers"
-	httpResponse "lock-stock-v2/internal/handlers/response"
 	"net/http"
 )
 
@@ -21,7 +21,7 @@ func NewJoinRoom(u usecase.JoinRoom, roomFinder domain.RoomFinder, roomUserServi
 	return &JoinRoom{joinRoomUseCase: u, roomFinder: roomFinder, roomUserService: roomUserService}
 }
 
-func (h *JoinRoom) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *JoinRoom) Do(w http.ResponseWriter, r *http.Request) {
 	roomID := chi.URLParam(r, "roomId")
 	room, err := helpers.GetRoomById(h.roomFinder, roomID)
 	if err != nil {

@@ -8,11 +8,10 @@ import (
 	"github.com/google/wire"
 	"github.com/jackc/pgx/v5/pgxpool"
 	externalDomain "lock-stock-v2/external/domain"
-	externalHandlers "lock-stock-v2/external/handlers"
 	externalUsecase "lock-stock-v2/external/usecase"
 	externalWebSocket "lock-stock-v2/external/websocket"
+	"lock-stock-v2/handlers"
 	internalDomainService "lock-stock-v2/internal/domain/service"
-	internalHandlers "lock-stock-v2/internal/handlers"
 	internalPostgresRepository "lock-stock-v2/internal/infrastructure/postgres"
 	internalWebSocket "lock-stock-v2/internal/infrastructure/websocket"
 	internalUsecase "lock-stock-v2/internal/usecase"
@@ -45,22 +44,14 @@ func InitializeRouter() (http.Handler, error) {
 		internalDomainService.NewRoomService,
 
 		// Handlers
-		internalHandlers.NewJoinRoom,
-		wire.Bind(new(externalHandlers.JoinRoom), new(*internalHandlers.JoinRoom)),
-
-		internalHandlers.NewCreateUser,
-		wire.Bind(new(externalHandlers.CreateUser), new(*internalHandlers.CreateUser)),
-
-		internalHandlers.NewGetRooms,
-		wire.Bind(new(externalHandlers.GetRooms), new(*internalHandlers.GetRooms)),
-
-		internalHandlers.NewStartGame,
-		wire.Bind(new(externalHandlers.StartGame), new(*internalHandlers.StartGame)),
+		handlers.NewJoinRoom,
+		handlers.NewGetRooms,
+		handlers.NewCreateUser,
+		handlers.NewStartGame,
+		handlers.NewWebSocketHandler,
 
 		// WebSocket
 		ProvideWebSocketManager,
-		internalHandlers.NewWebSocketHandler,
-		wire.Bind(new(externalHandlers.WebSocketHandler), new(*internalHandlers.WebSocketHandler)),
 
 		// Usecase
 		internalUsecase.NewJoinRoomUsecase,

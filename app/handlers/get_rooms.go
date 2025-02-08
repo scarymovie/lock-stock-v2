@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"lock-stock-v2/handlers/response"
 	"log"
 	"net/http"
 
@@ -16,20 +17,16 @@ func NewGetRooms(roomFinder externalDomain.RoomFinder) *GetRooms {
 	return &GetRooms{roomFinder: roomFinder}
 }
 
-func (g *GetRooms) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (g *GetRooms) Do(w http.ResponseWriter, r *http.Request) {
 	rooms, err := g.roomFinder.GetPending()
 	if err != nil {
 		http.Error(w, "Failed to get rooms: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	type roomResponse struct {
-		RoomUid string `json:"roomUid"`
-	}
-
-	var responseData []roomResponse
+	var responseData []response.RoomResponse
 	for _, room := range rooms {
-		responseData = append(responseData, roomResponse{
+		responseData = append(responseData, response.RoomResponse{
 			RoomUid: room.Uid(),
 		})
 	}
