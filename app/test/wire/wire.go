@@ -5,13 +5,14 @@ package wire
 
 import (
 	"github.com/google/wire"
+	"lock-stock-v2/internal/domain/room/repository"
+	externalDomain "lock-stock-v2/internal/domain/room_user/repository"
+	internalUsecase "lock-stock-v2/internal/domain/room_user/service"
+	repository2 "lock-stock-v2/internal/domain/user/repository"
+	"lock-stock-v2/internal/domain/user/service"
+	externalWs "lock-stock-v2/internal/websocket"
 
-	externalDomain "lock-stock-v2/external/domain"
 	externalUsecase "lock-stock-v2/external/usecase"
-	externalWs "lock-stock-v2/external/websocket"
-
-	internalUsecase "lock-stock-v2/internal/usecase"
-
 	"lock-stock-v2/test/inMemory"
 )
 
@@ -48,18 +49,18 @@ func ProvideInMemoryWebSocketManager() externalWs.Manager {
 var testSetWithStruct = wire.NewSet(
 
 	ProvideInMemoryRoomRepository,
-	wire.Bind(new(externalDomain.RoomRepository), new(*inMemory.RoomRepository)),
+	wire.Bind(new(repository.RoomRepository), new(*inMemory.RoomRepository)),
 
 	ProvideInMemoryUserRepository,
-	wire.Bind(new(externalDomain.UserRepository), new(*inMemory.UserRepository)),
+	wire.Bind(new(repository2.UserRepository), new(*inMemory.UserRepository)),
 
 	ProvideInMemoryRoomUserRepository,
 	wire.Bind(new(externalDomain.RoomUserRepository), new(*inMemory.RoomUserRepository)),
 
 	ProvideInMemoryWebSocketManager,
 
-	internalUsecase.NewJoinRoomUsecase,
-	wire.Bind(new(externalUsecase.JoinRoom), new(*internalUsecase.JoinRoomUsecase)),
+	internalUsecase.NewJoinRoom,
+	wire.Bind(new(externalUsecase.JoinRoom), new(*internalUsecase.JoinRoomService)),
 
 	wire.Struct(new(TestJoinRoomResult), "*"),
 )
@@ -67,10 +68,10 @@ var testSetWithStruct = wire.NewSet(
 var testSetCreateUser = wire.NewSet(
 
 	ProvideInMemoryUserRepository,
-	wire.Bind(new(externalDomain.UserRepository), new(*inMemory.UserRepository)),
+	wire.Bind(new(repository2.UserRepository), new(*inMemory.UserRepository)),
 
-	internalUsecase.NewCreateUser,
-	wire.Bind(new(externalUsecase.CreateUser), new(*internalUsecase.CreateUser)),
+	service.NewCreateUser,
+	wire.Bind(new(externalUsecase.CreateUser), new(*service.CreateUserService)),
 
 	wire.Struct(new(TestCreateUserResult), "*"),
 )

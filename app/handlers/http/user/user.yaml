@@ -1,0 +1,62 @@
+openapi: 3.0.0
+info:
+  title: Lock Stock API
+  version: 1.0.0
+
+paths:
+  /user/create:
+    post:
+      summary: Создать пользователя
+      description: Создаёт нового пользователя и возвращает его UID и имя.
+      operationId: createUser
+      tags:
+        - User
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RawCreateUser"
+      responses:
+        "200":
+          description: Успешное создание пользователя
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "400":
+          description: Ошибка валидации входных данных
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "Bad Request: invalid JSON"
+        "500":
+          description: Внутренняя ошибка сервера
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "Failed to create user"
+
+components:
+  schemas:
+    RawCreateUser:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          example: "John Doe"
+
+    User:
+      type: object
+      properties:
+        UserUid:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        Name:
+          type: string
+          example: "John Doe"

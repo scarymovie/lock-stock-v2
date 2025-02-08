@@ -7,14 +7,18 @@ import (
 	"errors"
 	"github.com/google/wire"
 	"github.com/jackc/pgx/v5/pgxpool"
-	externalDomain "lock-stock-v2/external/domain"
-	externalUsecase "lock-stock-v2/external/usecase"
-	externalWebSocket "lock-stock-v2/external/websocket"
-	"lock-stock-v2/handlers"
-	internalDomainService "lock-stock-v2/internal/domain/service"
+	"lock-stock-v2/handlers/http/room"
+	"lock-stock-v2/handlers/http/user"
+	"lock-stock-v2/handlers/http/ws"
+	roomRepository "lock-stock-v2/internal/domain/room/repository"
+	roomService "lock-stock-v2/internal/domain/room/service"
+	roomUserRepository "lock-stock-v2/internal/domain/room_user/repository"
+	roomUserService "lock-stock-v2/internal/domain/room_user/service"
+	userRepository "lock-stock-v2/internal/domain/user/repository"
+	userService "lock-stock-v2/internal/domain/user/service"
 	internalPostgresRepository "lock-stock-v2/internal/infrastructure/postgres"
 	internalWebSocket "lock-stock-v2/internal/infrastructure/websocket"
-	internalUsecase "lock-stock-v2/internal/usecase"
+	externalWebSocket "lock-stock-v2/internal/websocket"
 	"lock-stock-v2/router"
 	"net/http"
 )
@@ -35,45 +39,57 @@ func ProvideWebSocketManager() externalWebSocket.Manager {
 	return manager
 }
 
+func ProvideRoomHandler(
+	joinRoomService *roomUserService.JoinRoomService,
+	roomRepository roomRepository.RoomRepository,
+	roomUserService *roomUserService.RoomUserService,
+) *room.RoomHandler {
+	return room.NewRoomHandler(joinRoomService, roomRepository, roomUserService)
+}
+
+func ProvideUserHandler(createUserService *userService.CreateUserService) *user.UserHandler {
+	return user.NewUserHandler(createUserService)
+}
+
+func ProvideWebSocketHandler(manager externalWebSocket.Manager) *ws.WebSocketHandler {
+	return ws.NewWebSocketHandler(manager)
+}
+
+func ProvideRoomRepository(db *pgxpool.Pool) roomRepository.RoomRepository {
+	return internalPostgresRepository.NewPostgresRoomRepository(db)
+}
+
+func ProvideUserRepository(db *pgxpool.Pool) userRepository.UserRepository {
+	return internalPostgresRepository.NewPostgresUserRepository(db)
+}
+
+func ProvideRoomUserRepository(db *pgxpool.Pool) roomUserRepository.RoomUserRepository {
+	return internalPostgresRepository.NewPostgresRoomUserRepository(db)
+}
+
 func InitializeRouter() (http.Handler, error) {
 	wire.Build(
 		// Подключение к PostgreSQL
 		ProvidePostgresPool,
 
 		// Services
-		internalDomainService.NewRoomService,
+		roomUserService.NewJoinRoom,
+		roomUserService.NewRoomService,
+		userService.NewCreateUser,
+		roomService.NewStartGameService,
 
 		// Handlers
-		handlers.NewJoinRoom,
-		handlers.NewGetRooms,
-		handlers.NewCreateUser,
-		handlers.NewStartGame,
-		handlers.NewWebSocketHandler,
+		ProvideWebSocketHandler,
+		ProvideUserHandler,
+		ProvideRoomHandler,
 
 		// WebSocket
 		ProvideWebSocketManager,
 
-		// Usecase
-		internalUsecase.NewJoinRoomUsecase,
-		wire.Bind(new(externalUsecase.JoinRoom), new(*internalUsecase.JoinRoomUsecase)),
-
-		internalUsecase.NewCreateUser,
-		wire.Bind(new(externalUsecase.CreateUser), new(*internalUsecase.CreateUser)),
-
-		internalUsecase.NewStartGameUsecase,
-		wire.Bind(new(externalUsecase.StartGame), new(*internalUsecase.StartGameUsecase)),
-
-		// Domain
-		internalPostgresRepository.NewPostgresRoomRepository,
-		wire.Bind(new(externalDomain.RoomFinder), new(*internalPostgresRepository.RoomRepository)),
-		wire.Bind(new(externalDomain.RoomRepository), new(*internalPostgresRepository.RoomRepository)),
-
-		internalPostgresRepository.NewPostgresUserRepository,
-		wire.Bind(new(externalDomain.UserFinder), new(*internalPostgresRepository.UserRepository)),
-		wire.Bind(new(externalDomain.UserRepository), new(*internalPostgresRepository.UserRepository)),
-
-		internalPostgresRepository.NewPostgresRoomUserRepository,
-		wire.Bind(new(externalDomain.RoomUserRepository), new(*internalPostgresRepository.RoomUserRepository)),
+		// Repositories
+		ProvideRoomRepository,
+		ProvideUserRepository,
+		ProvideRoomUserRepository,
 
 		// Роутер
 		router.NewRouter,

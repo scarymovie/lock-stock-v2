@@ -3,7 +3,7 @@ package usecase
 import (
 	"github.com/stretchr/testify/require"
 	externalUsecase "lock-stock-v2/external/usecase"
-	internalDomain "lock-stock-v2/internal/domain"
+	internalDomain "lock-stock-v2/internal/domain/user/model"
 	wireTest "lock-stock-v2/test/wire"
 	"testing"
 )

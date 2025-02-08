@@ -3,16 +3,16 @@ package middleware
 import (
 	"context"
 	"errors"
+	userModel "lock-stock-v2/internal/domain/user/model"
+	"lock-stock-v2/internal/domain/user/repository"
 	"net/http"
-
-	"lock-stock-v2/external/domain"
 )
 
 type UserContextKey string
 
 const UserKey UserContextKey = "user"
 
-func UserAuthMiddleware(userFinder domain.UserFinder) func(http.Handler) http.Handler {
+func UserAuthMiddleware(userRepository repository.UserRepository) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			userId := r.Header.Get("Authorization")
@@ -21,7 +21,7 @@ func UserAuthMiddleware(userFinder domain.UserFinder) func(http.Handler) http.Ha
 				return
 			}
 
-			user, err := userFinder.FindById(userId)
+			user, err := userRepository.FindById(userId)
 			if err != nil {
 				http.Error(w, "User not found", http.StatusUnauthorized)
 				return
@@ -33,10 +33,10 @@ func UserAuthMiddleware(userFinder domain.UserFinder) func(http.Handler) http.Ha
 	}
 }
 
-func GetUserFromContext(ctx context.Context) (domain.User, error) {
-	user, ok := ctx.Value(UserKey).(domain.User)
+func GetUserFromContext(ctx context.Context) (*userModel.User, error) {
+	user, ok := ctx.Value(UserKey).(userModel.User)
 	if !ok {
 		return nil, errors.New("user not found in context")
 	}
-	return user, nil
+	return &user, nil
 }

@@ -3,20 +3,20 @@ package router
 import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/cors"
-	"lock-stock-v2/external/domain"
-	"lock-stock-v2/handlers"
+	"lock-stock-v2/handlers/http/room"
+	"lock-stock-v2/handlers/http/user"
+	"lock-stock-v2/handlers/http/ws"
+	"lock-stock-v2/internal/domain/user/repository"
 	"lock-stock-v2/middleware"
 	"log"
 	"net/http"
 )
 
 func NewRouter(
-	joinRoom *handlers.JoinRoom,
-	getAllRooms *handlers.GetRooms,
-	wsHandler *handlers.WebSocketHandler,
-	createUser *handlers.CreateUser,
-	startGame *handlers.StartGame,
-	userFinder domain.UserFinder,
+	roomHandler room.RoomHandler,
+	userHandler user.UserHandler,
+	wsHandler ws.WebSocketHandler,
+	userRepository repository.UserRepository,
 ) http.Handler {
 	r := chi.NewRouter()
 
@@ -30,20 +30,26 @@ func NewRouter(
 		MaxAge:           300,
 	}))
 
-	r.With(
-		middleware.LoggingMiddleware,
-		middleware.UserAuthMiddleware(userFinder),
-	).Route("/room", func(r chi.Router) {
-		r.Post("/join/{roomId}", joinRoom.Do)
-		r.Post("/list", getAllRooms.Do)
-		r.Post("/start/{roomId}", startGame.Do)
+	r.Group(func(r chi.Router) {
+		r.With(
+			middleware.LoggingMiddleware,
+			middleware.UserAuthMiddleware(userRepository),
+		).Route("/room", func(r chi.Router) {
+			room.HandlerFromMux(&roomHandler, r)
+		})
 	})
 
-	r.With(
-		middleware.LoggingMiddleware,
-	).Post("/user/create", createUser.Do)
+	r.Group(func(r chi.Router) {
+		r.With(middleware.LoggingMiddleware).Route("/user", func(r chi.Router) {
+			user.HandlerFromMux(&userHandler, r)
+		})
+	})
 
-	r.Handle("/ws/{roomId}", wsHandler)
+	r.Group(func(r chi.Router) {
+		r.With(middleware.LoggingMiddleware).Route("/ws/{roomId}", func(r chi.Router) {
+			ws.HandlerFromMux(&wsHandler, r)
+		})
+	})
 
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Not found url %s\n", r.URL)

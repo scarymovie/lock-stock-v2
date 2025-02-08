@@ -1,0 +1,137 @@
+openapi: 3.0.0
+info:
+  title: Lock Stock API
+  version: 1.0.0
+
+paths:
+  /room/join/{roomId}:
+    post:
+      summary: "Join a room"
+      parameters:
+        - name: roomId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/JoinRoomRequest"
+      responses:
+        "200":
+          description: "List of users in the room"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/JoinRoomResponse"
+        "404":
+          description: "Room not found"
+        "500":
+          description: "Internal server error"
+
+  /room/list:
+    post:
+      summary: Получить список ожидающих комнат
+      description: Возвращает список всех комнат, находящихся в статусе ожидания.
+      operationId: getRooms
+      tags:
+        - Room
+      responses:
+        "200":
+          description: Список комнат успешно получен
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RoomResponse"
+        "500":
+          description: Внутренняя ошибка сервера
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "Failed to get rooms: internal error"
+
+  /room/start/{roomId}:
+    post:
+      summary: Начать игру
+      description: Запускает игру в указанной комнате, если пользователь является её участником.
+      operationId: startGame
+      tags:
+        - Room
+      parameters:
+        - name: roomId
+          in: path
+          required: true
+          description: Уникальный идентификатор комнаты
+          schema:
+            type: string
+            format: uuid
+            example: "550e8400-e29b-41d4-a716-446655440000"
+      security:
+        - bearerAuth: [ ]
+      responses:
+        "200":
+          description: Игра успешно запущена
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Game started"
+        "403":
+          description: Пользователь не является участником комнаты
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "User is not in the room"
+        "404":
+          description: Комната или пользователь не найдены
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "Room not found"
+        "500":
+          description: Ошибка при запуске игры
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "Failed to start game"
+
+components:
+  schemas:
+    JoinRoomRequest:
+      type: object
+      properties:
+        userUid:
+          type: string
+        userName:
+          type: string
+
+    JoinRoomResponse:
+      type: object
+      properties:
+        roomUid:
+          type: string
+        userUid:
+          type: string
+        userName:
+          type: string
+
+    RoomResponse:
+      type: object
+      properties:
+        RoomUid:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"

@@ -3,16 +3,16 @@ package inMemory
 import (
 	"errors"
 	api "lock-stock-v2/external/domain"
-	"lock-stock-v2/internal/domain"
+	"lock-stock-v2/internal/domain/room/model"
 )
 
 type RoomRepository struct {
-	rooms map[string]*domain.Room
+	rooms map[string]*model.Room
 }
 
 func NewInMemoryRoomRepository() *RoomRepository {
 	return &RoomRepository{
-		rooms: make(map[string]*domain.Room),
+		rooms: make(map[string]*model.Room),
 	}
 }
 
@@ -25,7 +25,7 @@ func (repo *RoomRepository) FindById(roomId string) (api.Room, error) {
 }
 
 func (repo *RoomRepository) Save(room api.Room) error {
-	r, ok := room.(*domain.Room)
+	r, ok := room.(*model.Room)
 	if !ok {
 		return errors.New("invalid room type")
 	}

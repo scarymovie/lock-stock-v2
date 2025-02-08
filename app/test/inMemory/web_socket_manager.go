@@ -1,9 +1,8 @@
 package inMemory
 
 import (
+	externalWs "lock-stock-v2/internal/websocket"
 	"sync"
-
-	externalWs "lock-stock-v2/external/websocket"
 )
 
 var _ externalWs.Manager = (*InMemoryWebSocketManager)(nil)

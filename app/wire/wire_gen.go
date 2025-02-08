@@ -9,12 +9,16 @@ package wire
 import (
 	"errors"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"lock-stock-v2/external/websocket"
 	"lock-stock-v2/handlers"
-	"lock-stock-v2/internal/domain/service"
+	http2 "lock-stock-v2/handlers/http"
+	"lock-stock-v2/handlers/http/room"
+	"lock-stock-v2/handlers/http/user"
+	service2 "lock-stock-v2/internal/domain/room/service"
+	"lock-stock-v2/internal/domain/room_user/service"
+	"lock-stock-v2/internal/domain/user/service"
 	"lock-stock-v2/internal/infrastructure/postgres"
 	websocket2 "lock-stock-v2/internal/infrastructure/websocket"
-	"lock-stock-v2/internal/usecase"
+	"lock-stock-v2/internal/websocket"
 	"lock-stock-v2/router"
 	"net/http"
 )
@@ -28,17 +32,17 @@ func InitializeRouter() (http.Handler, error) {
 	}
 	roomUserRepository := postgres.NewPostgresRoomUserRepository(pool)
 	manager := ProvideWebSocketManager()
-	joinRoomUsecase := usecase.NewJoinRoomUsecase(roomUserRepository, manager)
+	joinRoomUsecase := services.NewJoinRoom(roomUserRepository, manager)
 	roomRepository := postgres.NewPostgresRoomRepository(pool)
-	roomUserService := services.NewRoomService(roomUserRepository)
+	roomUserService := services.services.NewRoomService(roomUserRepository)
 	joinRoom := handlers.NewJoinRoom(joinRoomUsecase, roomRepository, roomUserService)
-	getRooms := handlers.NewGetRooms(roomRepository)
-	webSocketHandler := handlers.NewWebSocketHandler(manager)
+	getRooms := room.NewGetRooms(roomRepository)
+	webSocketHandler := http2.NewWebSocketHandler(manager)
 	userRepository := postgres.NewPostgresUserRepository(pool)
-	createUser := usecase.NewCreateUser(userRepository)
-	handlersCreateUser := handlers.NewCreateUser(createUser)
-	startGameUsecase := usecase.NewStartGameUsecase(roomRepository, manager)
-	startGame := handlers.NewStartGame(roomRepository, roomUserService, startGameUsecase)
+	createUser := service.NewCreateUser(userRepository)
+	handlersCreateUser := user.NewUserHandler(createUser)
+	startGameUsecase := service2.NewStartGameService(roomRepository, manager)
+	startGame := room.NewStartGame(roomRepository, roomUserService, startGameUsecase)
 	handler := router.NewRouter(joinRoom, getRooms, webSocketHandler, handlersCreateUser, startGame, userRepository)
 	return handler, nil
 }
