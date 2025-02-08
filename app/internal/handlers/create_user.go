@@ -38,10 +38,9 @@ func (h *CreateUser) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	err = json.NewEncoder(w).Encode(response)
-	if err != nil {
-		http.Error(w, "Failed to write response", http.StatusInternalServerError)
-		return
+
+	if err = json.NewEncoder(w).Encode(response); err != nil {
+		log.Printf("Ошибка при отправке ответа: %v", err)
 	}
 
 	log.Printf("Player created %s", user.Uid())

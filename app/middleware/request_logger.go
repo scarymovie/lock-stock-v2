@@ -27,18 +27,7 @@ type responseWriterWrapper struct {
 }
 
 func (rw *responseWriterWrapper) WriteHeader(statusCode int) {
+	log.Printf("WriteHeader called with status: %d", statusCode)
 	rw.statusCode = statusCode
 	rw.ResponseWriter.WriteHeader(statusCode)
-}
-
-func NotFoundHandler(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Обработка запроса
-		next.ServeHTTP(w, r)
-
-		if ww, ok := w.(*responseWriterWrapper); ok && ww.statusCode == http.StatusOK {
-			http.NotFound(w, r)
-			log.Printf("404 Not Found: URL=%s", r.URL.Path)
-		}
-	})
 }

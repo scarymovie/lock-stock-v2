@@ -6,6 +6,7 @@ import (
 	"lock-stock-v2/external/domain"
 	"lock-stock-v2/external/handlers"
 	"lock-stock-v2/middleware"
+	"log"
 	"net/http"
 )
 
@@ -19,7 +20,7 @@ func NewRouter(
 ) http.Handler {
 	r := chi.NewRouter()
 
-	r.Use(middleware.LoggingAllRequests, middleware.NotFoundHandler)
+	r.Use(middleware.LoggingAllRequests)
 
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   []string{"http://localhost:3000"},
@@ -43,6 +44,11 @@ func NewRouter(
 	).Post("/user/create", createUser.ServeHTTP)
 
 	r.Handle("/ws/{roomId}", wsHandler)
+
+	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
+		log.Printf("Not found url %s\n", r.URL)
+		w.WriteHeader(http.StatusNotFound)
+	})
 
 	return r
 }

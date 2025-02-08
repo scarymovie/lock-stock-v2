@@ -22,7 +22,7 @@ func (repo *UserRepository) FindById(userId string) (externalDomain.User, error)
 	var tempUid string
 	var tempName string
 
-	query := `SELECT * FROM users WHERE uid = $1`
+	query := `SELECT uid, name FROM users WHERE uid = $1`
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()

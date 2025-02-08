@@ -27,7 +27,6 @@ func UserAuthMiddleware(userFinder domain.UserFinder) func(http.Handler) http.Ha
 				return
 			}
 
-			// Сохранить пользователя в контексте
 			ctx := context.WithValue(r.Context(), UserKey, user)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
