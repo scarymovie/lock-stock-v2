@@ -30,7 +30,7 @@ func (repo *UserRepository) SaveUser(user api.User) error {
 		return errors.New("invalid user type")
 	}
 
-	repo.users[u.GetUserUid()] = u
+	repo.users[u.Uid()] = u
 	return nil
 }
 

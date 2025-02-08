@@ -21,5 +21,5 @@ func TestCreateUser_Success(t *testing.T) {
 
 	u, ok := user.(*internalDomain.User)
 	require.True(t, ok, "должен быть *internalDomain.User")
-	require.Equal(t, "Alice", u.Name)
+	require.Equal(t, "Alice", u.Name())
 }

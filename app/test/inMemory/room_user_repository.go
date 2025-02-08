@@ -23,18 +23,18 @@ func (repo *RoomUserRepository) Save(roomUser api.RoomUser) error {
 		return errors.New("invalid RoomUser type")
 	}
 
-	key := fmt.Sprintf("%s:%s", ru.GetRoom().GetRoomUid(), ru.GetUser().GetUserUid())
+	key := fmt.Sprintf("%s:%s", ru.GetRoom().Uid(), ru.GetUser().Uid())
 
 	repo.roomUsers[key] = ru
 	return nil
 }
 
 func (repo *RoomUserRepository) FindByRoom(room api.Room) ([]api.RoomUser, error) {
-	roomUid := room.GetRoomUid()
+	roomUid := room.Uid()
 
 	var result []api.RoomUser
 	for _, ru := range repo.roomUsers {
-		if ru.GetRoom().GetRoomUid() == roomUid {
+		if ru.GetRoom().Uid() == roomUid {
 			result = append(result, ru)
 		}
 	}

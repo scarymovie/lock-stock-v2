@@ -30,7 +30,7 @@ func (repo *RoomRepository) Save(room api.Room) error {
 		return errors.New("invalid room type")
 	}
 
-	repo.rooms[r.GetRoomUid()] = r
+	repo.rooms[r.Uid()] = r
 	return nil
 }
 
