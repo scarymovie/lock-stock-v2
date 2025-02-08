@@ -24,7 +24,7 @@ func (s *RoomUserService) GetUsersByRoom(room domain.Room) ([]domain.RoomUser, e
 
 func (s *RoomUserService) IsUserInRoom(roomUsers []domain.RoomUser, user domain.User) bool {
 	for _, ru := range roomUsers {
-		if ru.GetUser().GetUserId() == user.GetUserId() {
+		if ru.GetUser().Uid() == user.Uid() {
 			return true
 		}
 	}

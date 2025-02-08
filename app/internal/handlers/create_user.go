@@ -32,8 +32,8 @@ func (h *CreateUser) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response := map[string]string{
-		"user_id": user.GetUserUid(),
-		"name":    user.GetUserName(),
+		"user_id": user.Uid(),
+		"name":    user.Name(),
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -44,5 +44,5 @@ func (h *CreateUser) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("Player created %s", user.GetUserUid())
+	log.Printf("Player created %s", user.Uid())
 }

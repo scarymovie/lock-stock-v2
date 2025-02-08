@@ -30,7 +30,7 @@ func (g *GetRooms) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var responseData []roomResponse
 	for _, room := range rooms {
 		responseData = append(responseData, roomResponse{
-			RoomUid: room.GetRoomUid(), // замените на GetUID(), если у вас другой метод
+			RoomUid: room.Uid(),
 		})
 	}
 

@@ -1,8 +1,7 @@
 package domain
 
 type Room interface {
-	GetRoomUid() string
-	GetRoomId() int
-	GetRoomStatus() RoomStatus
-	SetRoomStatus(roomStatus RoomStatus)
+	Uid() string
+	Status() RoomStatus
+	SetStatus(roomStatus RoomStatus)
 }

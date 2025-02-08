@@ -20,26 +20,19 @@ func NewPostgresRoomUserRepository(db *pgxpool.Pool) *RoomUserRepository {
 }
 
 func (repo *RoomUserRepository) Save(roomUser externalDomain.RoomUser) error {
-	ru, ok := roomUser.(*internalDomain.RoomUser)
-	if !ok {
-		return errors.New("invalid RoomUser type")
-	}
-
-	roomId := ru.GetRoom().GetRoomId()
-	userId := ru.GetUser().GetUserId()
-	log.Println(roomId)
-	log.Println(userId)
+	roomUid := roomUser.GetRoom().Uid()
+	userUid := roomUser.GetUser().Uid()
 
 	query := `
 		INSERT INTO room_users (room_id, user_id)
-		VALUES ($1, $2)
+		VALUES ((select id from rooms where uid = $1), (select id from users where uid = $2))
 		ON CONFLICT (room_id, user_id) DO NOTHING
 	`
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	_, err := repo.db.Exec(ctx, query, roomId, userId)
+	_, err := repo.db.Exec(ctx, query, roomUid, userUid)
 	if err != nil {
 		return fmt.Errorf("failed to save RoomUser: %w", err)
 	}
@@ -48,33 +41,17 @@ func (repo *RoomUserRepository) Save(roomUser externalDomain.RoomUser) error {
 }
 
 func (repo *RoomUserRepository) FindByRoom(room externalDomain.Room) ([]externalDomain.RoomUser, error) {
-	log.Printf("Room type: %T, value: %+v", room, room)
-
-	if room == nil {
-		log.Println("FindByRoom called with nil room object!")
-		return nil, errors.New("room is nil")
-	}
-
-	log.Printf("FindByRoom: about to run query with roomId=%d\n", room.GetRoomId())
-
-	roomID := room.GetRoomId()
-
 	query := `
-		SELECT 
-			ru.id, 
-			r.id, r.uid,
-			u.id, u.uid, u.name
-		FROM room_users ru
+		SELECT * FROM room_users ru
 		JOIN rooms r ON ru.room_id = r.id
 		JOIN users u ON ru.user_id = u.id
-		WHERE ru.room_id = $1
+		WHERE ru.room_id = (select id from rooms where uid = $1)
     `
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	log.Printf("Preparing to query room_users with roomID: %d", roomID)
-	rows, err := repo.db.Query(ctx, query, roomID)
+	rows, err := repo.db.Query(ctx, query, room.Uid())
 	if err != nil {
 		log.Printf("Query failed: %v", err)
 		return nil, fmt.Errorf("failed to query room_users: %w", err)
@@ -86,33 +63,20 @@ func (repo *RoomUserRepository) FindByRoom(room externalDomain.Room) ([]external
 
 	for rows.Next() {
 		var (
-			roomUserID int
-			dbRoomID   int
-			dbRoomUid  string
-			dbUserID   int
-			dbUserUid  string
-			dbUserName string
+			roomUid    string
+			roomStatus externalDomain.RoomStatus
+			userUid    string
+			userName   string
 		)
 
-		if err := rows.Scan(&roomUserID, &dbRoomID, &dbRoomUid, &dbUserID, &dbUserUid, &dbUserName); err != nil {
+		if err := rows.Scan(&roomUid, &userUid, &userName); err != nil {
 			log.Printf("Failed to scan row: %v", err)
 			return nil, fmt.Errorf("failed to scan row: %w", err)
 		}
 
-		rm := &internalDomain.Room{
-			Id:  dbRoomID,
-			Uid: dbRoomUid,
-		}
-
-		usr := &internalDomain.User{
-			Id:   dbUserID,
-			Uid:  dbUserUid,
-			Name: dbUserName,
-		}
-
-		ru := &internalDomain.RoomUser{}
-		ru.SetRoom(rm)
-		ru.SetUser(usr)
+		rm := internalDomain.NewRoom(userUid, roomStatus)
+		usr := internalDomain.NewUser(userUid, userName)
+		ru := internalDomain.NewRoomUser(rm, usr)
 
 		results = append(results, ru)
 	}

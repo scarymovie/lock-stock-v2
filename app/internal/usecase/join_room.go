@@ -34,13 +34,13 @@ func (s JoinRoomUsecase) JoinRoom(request usecase.JoinRoomRequest) error {
 		return err
 	}
 
-	log.Printf("usecase Player %s joined room %s\n", request.User.GetUserUid(), request.Room.GetRoomUid())
+	log.Printf("usecase Player %s joined room %s\n", request.User.Uid(), request.Room.Uid())
 
 	message := map[string]string{
 		"event":     "user_joined",
-		"user_id":   roomUser.GetUser().GetUserUid(),
-		"user_name": roomUser.GetUser().GetUserName(),
-		"room_id":   roomUser.GetRoom().GetRoomUid(),
+		"user_id":   roomUser.GetUser().Uid(),
+		"user_name": roomUser.GetUser().Name(),
+		"room_id":   roomUser.GetRoom().Uid(),
 	}
 
 	jsonMessage, err := json.Marshal(message)
@@ -50,7 +50,7 @@ func (s JoinRoomUsecase) JoinRoom(request usecase.JoinRoomRequest) error {
 	}
 
 	log.Println(string(jsonMessage))
-	s.webSocketManager.PublishToRoom(request.Room.GetRoomUid(), jsonMessage)
+	s.webSocketManager.PublishToRoom(request.Room.Uid(), jsonMessage)
 
 	return nil
 }

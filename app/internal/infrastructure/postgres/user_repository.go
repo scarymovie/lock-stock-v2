@@ -19,19 +19,21 @@ func NewPostgresUserRepository(db *pgxpool.Pool) *UserRepository {
 }
 
 func (repo *UserRepository) FindById(userId string) (externalDomain.User, error) {
-	var user internalDomain.User
+	var tempUid string
+	var tempName string
 
 	query := `SELECT * FROM users WHERE uid = $1`
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	err := repo.db.QueryRow(ctx, query, userId).Scan(&user.Id, &user.Uid, &user.Name)
+	err := repo.db.QueryRow(ctx, query, userId).Scan(&tempUid, &tempName)
 	if err != nil {
 		return nil, errors.New("user not found: " + err.Error())
 	}
 
-	return &user, nil
+	newUser := internalDomain.NewUser(tempUid, tempName)
+	return newUser, nil
 }
 
 func (repo *UserRepository) SaveUser(user externalDomain.User) error {
@@ -50,7 +52,7 @@ func (repo *UserRepository) SaveUser(user externalDomain.User) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	_, err := repo.db.Exec(ctx, query, u.GetUserUid(), u.GetUserName())
+	_, err := repo.db.Exec(ctx, query, u.Uid(), u.Name())
 	if err != nil {
 		return fmt.Errorf("failed to save user: %w", err)
 	}

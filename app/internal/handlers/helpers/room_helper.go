@@ -17,12 +17,12 @@ func GetRoomById(roomFinder domain.RoomFinder, roomID string) (domain.Room, erro
 		return nil, &RoomNotFoundError{Code: http.StatusNotFound, Message: "Failed to find room"}
 	}
 
-	if room == nil || room.GetRoomId() == 0 {
+	if room == nil || room.Uid() == "" {
 		log.Printf("Room %v does not exist or invalid\n", roomID)
 		return nil, &RoomNotFoundError{Code: http.StatusNotFound, Message: "Room does not exist or invalid"}
 	}
 
-	log.Printf("Room retrieved: ID=%d, UID=%s", room.GetRoomId(), room.GetRoomUid())
+	log.Printf("Room retrieved: UID=%s", room.Uid())
 	return room, nil
 }
 

@@ -50,9 +50,9 @@ func (h *JoinRoom) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var response []httpResponse.RoomUserResponse
 	for _, ru := range roomUsers {
 		response = append(response, httpResponse.RoomUserResponse{
-			RoomUid:  ru.GetRoom().GetRoomUid(),
-			UserUid:  ru.GetUser().GetUserUid(),
-			UserName: ru.GetUser().GetUserName(),
+			RoomUid:  ru.GetRoom().Uid(),
+			UserUid:  ru.GetUser().Uid(),
+			UserName: ru.GetUser().Name(),
 		})
 	}
 

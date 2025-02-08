@@ -1,26 +1,25 @@
 package domain
 
 type User struct {
-	Id   int
-	Uid  string
-	Name string
+	uid  string
+	name string
 }
 
-func (u User) GetUserId() int {
-	return u.Id
+func NewUser(uid string, name string) *User {
+	return &User{uid: uid, name: name}
 }
 
-func (u User) GetUserUid() string {
-	return u.Uid
+func (u *User) Uid() string {
+	return u.uid
 }
 
-func (u User) GetUserName() string {
-	return u.Name
+func (u *User) Name() string {
+	return u.name
 }
 
-func (u User) SetUserUid(uid string) {
-	u.Uid = uid
+func (u *User) SetUid(uid string) {
+	u.uid = uid
 }
-func (u User) SetUserName(name string) {
-	u.Name = name
+func (u *User) SetName(name string) {
+	u.name = name
 }

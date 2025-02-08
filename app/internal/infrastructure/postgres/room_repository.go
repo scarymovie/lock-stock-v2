@@ -20,22 +20,26 @@ func NewPostgresRoomRepository(db *pgxpool.Pool) *RoomRepository {
 }
 
 func (repo *RoomRepository) FindById(roomId string) (externalDomain.Room, error) {
-	var room domain.Room
+	var tempUid string
+	var tempStatus externalDomain.RoomStatus
 
 	query := `SELECT id, uid FROM rooms WHERE uid = $1`
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	err := repo.db.QueryRow(ctx, query, roomId).Scan(&room.Id, &room.Uid)
+	err := repo.db.QueryRow(ctx, query, roomId).Scan(&tempUid, &tempStatus)
 	if err != nil {
 		return nil, errors.New("room not found: " + err.Error())
 	}
 
-	return &room, nil
+	return domain.NewRoom(tempUid, tempStatus), nil
 }
 
 func (repo *RoomRepository) GetPending() ([]externalDomain.Room, error) {
+	var tempId int
+	var tempUid string
+	var tempStatus externalDomain.RoomStatus
 	query := `SELECT * FROM rooms where rooms.status = 'pending'`
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -50,7 +54,7 @@ func (repo *RoomRepository) GetPending() ([]externalDomain.Room, error) {
 	var rooms []externalDomain.Room
 	for rows.Next() {
 		var r domain.Room
-		if err := rows.Scan(&r.Id, &r.Uid, &r.Status); err != nil {
+		if err := rows.Scan(&tempId, &tempUid, &tempStatus); err != nil {
 			return nil, err
 		}
 		rooms = append(rooms, &r)
@@ -73,7 +77,7 @@ func (repo *RoomRepository) Save(room externalDomain.Room) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	_, err := repo.db.Exec(ctx, query, room.GetRoomUid())
+	_, err := repo.db.Exec(ctx, query, room.Uid())
 	if err != nil {
 		return fmt.Errorf("failed to save room: %w", err)
 	}
@@ -91,7 +95,7 @@ func (repo *RoomRepository) UpdateRoomStatus(room externalDomain.Room) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	_, err := repo.db.Exec(ctx, query, room.GetRoomStatus(), room.GetRoomUid())
+	_, err := repo.db.Exec(ctx, query, room.Status(), room.Uid())
 	if err != nil {
 		return fmt.Errorf("failed to update room: %w", err)
 	}

@@ -22,7 +22,7 @@ func NewStartGameUsecase(
 
 func (uc *StartGameUsecase) StartGame(req usecase.StartGameRequest) error {
 
-	req.Room.SetRoomStatus(domain.StatusStarted)
+	req.Room.SetStatus(domain.StatusStarted)
 	if err := uc.roomRepository.UpdateRoomStatus(req.Room); err != nil {
 		log.Println("Failed to update room status:", err)
 		return err
@@ -30,7 +30,7 @@ func (uc *StartGameUsecase) StartGame(req usecase.StartGameRequest) error {
 
 	message := map[string]string{
 		"event":   "game_started",
-		"roomUid": req.Room.GetRoomUid(),
+		"roomUid": req.Room.Uid(),
 	}
 
 	jsonMessage, err := json.Marshal(message)
@@ -41,7 +41,7 @@ func (uc *StartGameUsecase) StartGame(req usecase.StartGameRequest) error {
 
 	log.Println(string(jsonMessage))
 
-	uc.webSocket.PublishToRoom(req.Room.GetRoomUid(), jsonMessage)
+	uc.webSocket.PublishToRoom(req.Room.Uid(), jsonMessage)
 
 	return nil
 }

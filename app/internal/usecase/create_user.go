@@ -16,14 +16,14 @@ func NewCreateUser(userRepository domain.UserRepository) *CreateUser {
 }
 
 func (cu *CreateUser) Do(RawUser usecase.RawCreateUser) (domain.User, error) {
-	newUser := internalDomain.User{
-		Uid:  "user-" + uuid.New().String(),
-		Name: RawUser.Name,
-	}
+	newUser := internalDomain.NewUser(
+		"user-"+uuid.New().String(),
+		RawUser.Name,
+	)
 
-	if err := cu.userRepository.SaveUser(&newUser); err != nil {
+	if err := cu.userRepository.SaveUser(newUser); err != nil {
 		return nil, err
 	}
 
-	return &newUser, nil
+	return newUser, nil
 }

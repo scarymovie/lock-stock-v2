@@ -3,9 +3,12 @@ package domain
 import "lock-stock-v2/external/domain"
 
 type RoomUser struct {
-	id   int
 	room domain.Room
 	user domain.User
+}
+
+func NewRoomUser(room domain.Room, user domain.User) *RoomUser {
+	return &RoomUser{room: room, user: user}
 }
 
 func (ru *RoomUser) SetUser(user domain.User) {
