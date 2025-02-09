@@ -1,4 +1,4 @@
-package: ws
+package: user
 generate:
   - types   # Генерирует структуры для request/response
   - chi-server  # Генерирует интерфейсы для Chi-роутера

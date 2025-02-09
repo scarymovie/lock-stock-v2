@@ -4,7 +4,7 @@ info:
   version: 1.0.0
 
 paths:
-  /user/create:
+  /create:
     post:
       summary: Создать пользователя
       description: Создаёт нового пользователя и возвращает его UID и имя.
