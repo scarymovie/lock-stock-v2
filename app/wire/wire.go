@@ -42,10 +42,11 @@ func ProvideWebSocketManager() externalWebSocket.Manager {
 func ProvideRoomHandler(
 	joinRoomService *roomUserService.JoinRoomService,
 	roomRepository roomRepository.RoomRepository,
+	userRepository userRepository.UserRepository,
 	roomUserService *roomUserService.RoomUserService,
 	startGameService *roomService.StartGameService,
 ) *room.RoomHandler {
-	return room.NewRoomHandler(joinRoomService, roomRepository, roomUserService, startGameService)
+	return room.NewRoomHandler(joinRoomService, roomRepository, userRepository, roomUserService, startGameService)
 }
 
 func ProvideUserHandler(createUserService *userService.CreateUserService) *user.UserHandler {

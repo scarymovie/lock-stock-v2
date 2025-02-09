@@ -44,7 +44,7 @@ func (repo *RoomUserRepository) Save(roomUser *roomUserModel.RoomUser) error {
 
 func (repo *RoomUserRepository) FindByRoom(room *roomModel.Room) ([]*roomUserModel.RoomUser, error) {
 	query := `
-		SELECT * FROM room_users ru
+		SELECT r.uid, r.status, u.uid, u.name FROM room_users ru
 		JOIN rooms r ON ru.room_id = r.id
 		JOIN users u ON ru.user_id = u.id
 		WHERE ru.room_id = (select id from rooms where uid = $1)
@@ -71,7 +71,7 @@ func (repo *RoomUserRepository) FindByRoom(room *roomModel.Room) ([]*roomUserMod
 			userName   string
 		)
 
-		if err := rows.Scan(&roomUid, &userUid, &userName); err != nil {
+		if err := rows.Scan(&roomUid, &roomStatus, &userUid, &userName); err != nil {
 			log.Printf("Failed to scan row: %v", err)
 			return nil, fmt.Errorf("failed to scan row: %w", err)
 		}

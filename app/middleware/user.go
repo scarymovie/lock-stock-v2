@@ -34,9 +34,9 @@ func UserAuthMiddleware(userRepository repository.UserRepository) func(http.Hand
 }
 
 func GetUserFromContext(ctx context.Context) (*userModel.User, error) {
-	user, ok := ctx.Value(UserKey).(userModel.User)
+	user, ok := ctx.Value(UserKey).(*userModel.User)
 	if !ok {
 		return nil, errors.New("user not found in context")
 	}
-	return &user, nil
+	return user, nil
 }

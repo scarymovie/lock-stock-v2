@@ -2,27 +2,27 @@ package room
 
 import (
 	"encoding/json"
-	"github.com/go-chi/chi/v5"
-	"github.com/google/uuid"
-	openapitypes "github.com/oapi-codegen/runtime/types"
-	helpers2 "lock-stock-v2/handlers/http/helpers"
+	"lock-stock-v2/handlers/http/helpers"
 	"lock-stock-v2/internal/domain/room/repository"
 	"lock-stock-v2/internal/domain/room/service"
 	"lock-stock-v2/internal/domain/room_user/service"
+	userRepository "lock-stock-v2/internal/domain/user/repository"
 	"log"
 	"net/http"
 )
 
 type RoomHandler struct {
 	joinRoomService  *services.JoinRoomService
-	roomRepository   repository.RoomRepository
 	roomUserService  *services.RoomUserService
 	startGameService *service.StartGameService
+	roomRepository   repository.RoomRepository
+	userRepository   userRepository.UserRepository
 }
 
 func NewRoomHandler(
 	u *services.JoinRoomService,
 	roomRepository repository.RoomRepository,
+	userRepository userRepository.UserRepository,
 	roomUserService *services.RoomUserService,
 	startGameService *service.StartGameService,
 ) *RoomHandler {
@@ -31,6 +31,7 @@ func NewRoomHandler(
 		roomRepository:   roomRepository,
 		roomUserService:  roomUserService,
 		startGameService: startGameService,
+		userRepository:   userRepository,
 	}
 }
 
@@ -43,7 +44,7 @@ func (h *RoomHandler) GetRooms(w http.ResponseWriter, r *http.Request) {
 
 	var responseData []RoomResponse
 	for _, room := range rooms {
-		var responseRoomUid = uuid.MustParse(room.Uid())
+		var responseRoomUid = room.Uid()
 		responseData = append(responseData, RoomResponse{
 			RoomUid: &responseRoomUid,
 		})
@@ -58,17 +59,16 @@ func (h *RoomHandler) GetRooms(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *RoomHandler) StartGame(w http.ResponseWriter, r *http.Request, roomId openapitypes.UUID) {
-	roomID := chi.URLParam(r, "roomId")
-	room, err := helpers2.GetRoomById(h.roomRepository, roomID)
+func (h *RoomHandler) StartGame(w http.ResponseWriter, r *http.Request, roomId string) {
+	room, err := helpers.GetRoomById(h.roomRepository, roomId)
 	if err != nil {
-		http.Error(w, err.Error(), err.(*helpers2.RoomNotFoundError).Code)
+		http.Error(w, err.Error(), err.(*helpers.RoomNotFoundError).Code)
 		return
 	}
 
-	user, err := helpers2.GetUserFromRequest(r)
+	user, err := helpers.GetUserFromRequest(r)
 	if err != nil {
-		http.Error(w, err.Error(), err.(*helpers2.UserNotFoundError).Code)
+		http.Error(w, err.Error(), err.(*helpers.UserNotFoundError).Code)
 		return
 	}
 	roomUsers, err := h.roomUserService.GetUsersByRoom(room)
@@ -97,25 +97,18 @@ func (h *RoomHandler) StartGame(w http.ResponseWriter, r *http.Request, roomId o
 	json.NewEncoder(w).Encode(map[string]string{"message": "Game started"})
 }
 
-func (h *RoomHandler) PostRoomJoinRoomId(w http.ResponseWriter, r *http.Request, roomId string) {
-	var req JoinRoomRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request", http.StatusBadRequest)
-		return
-	}
-
-	room, err := helpers2.GetRoomById(h.roomRepository, roomId)
+func (h *RoomHandler) JoinRoom(w http.ResponseWriter, r *http.Request, roomId string, params JoinRoomParams) {
+	room, err := helpers.GetRoomById(h.roomRepository, roomId)
 	if err != nil {
-		http.Error(w, err.Error(), err.(*helpers2.RoomNotFoundError).Code)
+		http.Error(w, err.Error(), err.(*helpers.RoomNotFoundError).Code)
 		return
 	}
 
-	user, err := helpers2.GetUserFromRequest(r)
+	user, err := helpers.GetUserFromString(params.Authorization, h.userRepository)
 	if err != nil {
-		http.Error(w, err.Error(), err.(*helpers2.UserNotFoundError).Code)
+		http.Error(w, err.Error(), err.(*helpers.UserNotFoundError).Code)
 		return
 	}
-
 	domainReq := services.JoinRoomRequest{User: user, Room: room}
 	if err := h.joinRoomService.JoinRoom(domainReq); err != nil {
 		http.Error(w, "Failed to join room: "+err.Error(), http.StatusInternalServerError)

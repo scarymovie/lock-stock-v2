@@ -1,6 +1,8 @@
 package repository
 
-import "lock-stock-v2/internal/domain/room/model"
+import (
+	"lock-stock-v2/internal/domain/room/model"
+)
 
 type RoomRepository interface {
 	Save(room *model.Room) error

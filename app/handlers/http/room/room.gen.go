@@ -10,18 +10,11 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/oapi-codegen/runtime"
-	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
 const (
 	BearerAuthScopes = "bearerAuth.Scopes"
 )
-
-// JoinRoomRequest defines model for JoinRoomRequest.
-type JoinRoomRequest struct {
-	UserName *string `json:"userName,omitempty"`
-	UserUid  *string `json:"userUid,omitempty"`
-}
 
 // JoinRoomResponse defines model for JoinRoomResponse.
 type JoinRoomResponse struct {
@@ -32,44 +25,45 @@ type JoinRoomResponse struct {
 
 // RoomResponse defines model for RoomResponse.
 type RoomResponse struct {
-	RoomUid *openapi_types.UUID `json:"RoomUid,omitempty"`
+	RoomUid *string `json:"roomUid,omitempty"`
 }
 
-// PostRoomJoinRoomIdJSONRequestBody defines body for PostRoomJoinRoomId for application/json ContentType.
-type PostRoomJoinRoomIdJSONRequestBody = JoinRoomRequest
+// JoinRoomParams defines parameters for JoinRoom.
+type JoinRoomParams struct {
+	Authorization string `json:"Authorization"`
+}
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
-	// Join a room
-	// (POST /room/join/{roomId})
-	PostRoomJoinRoomId(w http.ResponseWriter, r *http.Request, roomId string)
+
+	// (POST /join/{roomId})
+	JoinRoom(w http.ResponseWriter, r *http.Request, roomId string, params JoinRoomParams)
 	// Получить список ожидающих комнат
-	// (POST /room/list)
+	// (POST /list)
 	GetRooms(w http.ResponseWriter, r *http.Request)
 	// Начать игру
-	// (POST /room/start/{roomId})
-	StartGame(w http.ResponseWriter, r *http.Request, roomId openapi_types.UUID)
+	// (POST /start/{roomId})
+	StartGame(w http.ResponseWriter, r *http.Request, roomId string)
 }
 
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
 
 type Unimplemented struct{}
 
-// Join a room
-// (POST /room/join/{roomId})
-func (_ Unimplemented) PostRoomJoinRoomId(w http.ResponseWriter, r *http.Request, roomId string) {
+// (POST /join/{roomId})
+func (_ Unimplemented) JoinRoom(w http.ResponseWriter, r *http.Request, roomId string, params JoinRoomParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // Получить список ожидающих комнат
-// (POST /room/list)
+// (POST /list)
 func (_ Unimplemented) GetRooms(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // Начать игру
-// (POST /room/start/{roomId})
-func (_ Unimplemented) StartGame(w http.ResponseWriter, r *http.Request, roomId openapi_types.UUID) {
+// (POST /start/{roomId})
+func (_ Unimplemented) StartGame(w http.ResponseWriter, r *http.Request, roomId string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -82,8 +76,8 @@ type ServerInterfaceWrapper struct {
 
 type MiddlewareFunc func(http.Handler) http.Handler
 
-// PostRoomJoinRoomId operation middleware
-func (siw *ServerInterfaceWrapper) PostRoomJoinRoomId(w http.ResponseWriter, r *http.Request) {
+// JoinRoom operation middleware
+func (siw *ServerInterfaceWrapper) JoinRoom(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	var err error
@@ -97,8 +91,36 @@ func (siw *ServerInterfaceWrapper) PostRoomJoinRoomId(w http.ResponseWriter, r *
 		return
 	}
 
+	// Parameter object where we will unmarshal all parameters from the context
+	var params JoinRoomParams
+
+	headers := r.Header
+
+	// ------------- Required header parameter "Authorization" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("Authorization")]; found {
+		var Authorization string
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "Authorization", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithLocation("simple", false, "Authorization", runtime.ParamLocationHeader, valueList[0], &Authorization)
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "Authorization", Err: err})
+			return
+		}
+
+		params.Authorization = Authorization
+
+	} else {
+		err := fmt.Errorf("Header parameter Authorization is required, but not found")
+		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "Authorization", Err: err})
+		return
+	}
+
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.PostRoomJoinRoomId(w, r, roomId)
+		siw.Handler.JoinRoom(w, r, roomId, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -130,7 +152,7 @@ func (siw *ServerInterfaceWrapper) StartGame(w http.ResponseWriter, r *http.Requ
 	var err error
 
 	// ------------- Path parameter "roomId" -------------
-	var roomId openapi_types.UUID
+	var roomId string
 
 	err = runtime.BindStyledParameterWithLocation("simple", false, "roomId", runtime.ParamLocationPath, chi.URLParam(r, "roomId"), &roomId)
 	if err != nil {
@@ -265,13 +287,13 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	}
 
 	r.Group(func(r chi.Router) {
-		r.Post(options.BaseURL+"/room/join/{roomId}", wrapper.PostRoomJoinRoomId)
+		r.Post(options.BaseURL+"/join/{roomId}", wrapper.JoinRoom)
 	})
 	r.Group(func(r chi.Router) {
-		r.Post(options.BaseURL+"/room/list", wrapper.GetRooms)
+		r.Post(options.BaseURL+"/list", wrapper.GetRooms)
 	})
 	r.Group(func(r chi.Router) {
-		r.Post(options.BaseURL+"/room/start/{roomId}", wrapper.StartGame)
+		r.Post(options.BaseURL+"/start/{roomId}", wrapper.StartGame)
 	})
 
 	return r

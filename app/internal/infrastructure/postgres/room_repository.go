@@ -22,7 +22,7 @@ func (repo *RoomRepository) FindById(roomId string) (*model.Room, error) {
 	var tempUid string
 	var tempStatus model.RoomStatus
 
-	query := `SELECT id, uid FROM rooms WHERE uid = $1`
+	query := `SELECT uid, status FROM rooms WHERE uid = $1`
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()

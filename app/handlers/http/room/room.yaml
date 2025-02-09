@@ -4,21 +4,22 @@ info:
   version: 1.0.0
 
 paths:
-  /room/join/{roomId}:
+  /join/{roomId}:
     post:
-      summary: "Join a room"
+      operationId: joinRoom
+      tags:
+        - Room
       parameters:
         - name: roomId
           in: path
           required: true
           schema:
             type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/JoinRoomRequest"
+        - name: Authorization
+          in: header
+          required: true
+          schema:
+            type: string
       responses:
         "200":
           description: "List of users in the room"
@@ -33,7 +34,7 @@ paths:
         "500":
           description: "Internal server error"
 
-  /room/list:
+  /list:
     post:
       summary: Получить список ожидающих комнат
       description: Возвращает список всех комнат, находящихся в статусе ожидания.
@@ -57,7 +58,7 @@ paths:
                 type: string
                 example: "Failed to get rooms: internal error"
 
-  /room/start/{roomId}:
+  /start/{roomId}:
     post:
       summary: Начать игру
       description: Запускает игру в указанной комнате, если пользователь является её участником.
@@ -71,7 +72,6 @@ paths:
           description: Уникальный идентификатор комнаты
           schema:
             type: string
-            format: uuid
             example: "550e8400-e29b-41d4-a716-446655440000"
       security:
         - bearerAuth: [ ]
@@ -110,14 +110,6 @@ paths:
 
 components:
   schemas:
-    JoinRoomRequest:
-      type: object
-      properties:
-        userUid:
-          type: string
-        userName:
-          type: string
-
     JoinRoomResponse:
       type: object
       properties:
@@ -131,7 +123,6 @@ components:
     RoomResponse:
       type: object
       properties:
-        RoomUid:
+        roomUid:
           type: string
-          format: uuid
           example: "550e8400-e29b-41d4-a716-446655440000"
