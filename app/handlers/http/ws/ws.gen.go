@@ -9,14 +9,13 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/oapi-codegen/runtime"
-	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
 	// Установить WebSocket-соединение
-	// (GET /ws/{roomId})
-	ConnectWebSocket(w http.ResponseWriter, r *http.Request, roomId openapi_types.UUID)
+	// (GET /{roomId})
+	ConnectWebSocket(w http.ResponseWriter, r *http.Request, roomId string)
 }
 
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
@@ -24,8 +23,8 @@ type ServerInterface interface {
 type Unimplemented struct{}
 
 // Установить WebSocket-соединение
-// (GET /ws/{roomId})
-func (_ Unimplemented) ConnectWebSocket(w http.ResponseWriter, r *http.Request, roomId openapi_types.UUID) {
+// (GET /{roomId})
+func (_ Unimplemented) ConnectWebSocket(w http.ResponseWriter, r *http.Request, roomId string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -45,7 +44,7 @@ func (siw *ServerInterfaceWrapper) ConnectWebSocket(w http.ResponseWriter, r *ht
 	var err error
 
 	// ------------- Path parameter "roomId" -------------
-	var roomId openapi_types.UUID
+	var roomId string
 
 	err = runtime.BindStyledParameterWithLocation("simple", false, "roomId", runtime.ParamLocationPath, chi.URLParam(r, "roomId"), &roomId)
 	if err != nil {
@@ -178,7 +177,7 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	}
 
 	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/ws/{roomId}", wrapper.ConnectWebSocket)
+		r.Get(options.BaseURL+"/{roomId}", wrapper.ConnectWebSocket)
 	})
 
 	return r

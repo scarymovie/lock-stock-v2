@@ -2,7 +2,6 @@ package ws
 
 import (
 	gorillaWs "github.com/gorilla/websocket"
-	openapi_types "github.com/oapi-codegen/runtime/types"
 	"lock-stock-v2/internal/websocket"
 	"log"
 	"net/http"
@@ -16,33 +15,46 @@ func NewWebSocketHandler(manager websocket.Manager) *WebSocketHandler {
 	return &WebSocketHandler{Manager: manager}
 }
 
-func (h *WebSocketHandler) ConnectWebSocket(w http.ResponseWriter, r *http.Request, roomId openapi_types.UUID) {
+func (h *WebSocketHandler) ConnectWebSocket(w http.ResponseWriter, r *http.Request, roomId string) {
+	log.Printf("Incoming WebSocket connection: URL=%s, Method=%s", r.URL.Path, r.Method)
+	log.Printf("ResponseWriter type: %T", w)
+
 	upgrader := gorillaWs.Upgrader{
-		CheckOrigin: func(r *http.Request) bool { return true },
+		CheckOrigin: func(r *http.Request) bool {
+			log.Printf("WebSocket request from Origin: %s", r.Header.Get("Origin"))
+			return true
+		},
 	}
+
+	log.Println("Upgrading HTTP connection to WebSocket...")
 
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
+		log.Printf("WebSocket upgrade failed: %v", err)
 		http.Error(w, "Failed to upgrade connection", http.StatusInternalServerError)
 		return
 	}
-	roomID := roomId.String()
+
+	log.Printf("WebSocket connection established: Client=%s, RoomID=%s", conn.RemoteAddr(), roomId)
+
 	client := &websocket.Client{
 		Conn:   conn,
 		Send:   make(chan []byte),
-		RoomID: roomID,
+		RoomID: roomId,
 	}
 
-	log.Printf("Registering client: %s, RoomID: %s\n", conn.RemoteAddr(), roomID)
+	log.Printf("Registering client: %s, RoomID: %s", conn.RemoteAddr(), roomId)
 	h.Manager.Register(client)
-	log.Printf("Client sent to register channel: %s, RoomID: %s\n", conn.RemoteAddr(), roomID)
+
+	log.Printf("Client successfully registered: %s, RoomID: %s", conn.RemoteAddr(), roomId)
 
 	go func() {
-		log.Printf("Starting handleMessages for client: %s, RoomID: %s\n", client.Conn.RemoteAddr(), client.RoomID)
+		log.Printf("Starting handleMessages for client: %s, RoomID: %s", client.Conn.RemoteAddr(), client.RoomID)
 		h.handleMessages(client)
 	}()
+
 	go func() {
-		log.Printf("Starting writeMessages for client: %s, RoomID: %s\n", client.Conn.RemoteAddr(), client.RoomID)
+		log.Printf("Starting writeMessages for client: %s, RoomID: %s", client.Conn.RemoteAddr(), client.RoomID)
 		h.writeMessages(client)
 	}()
 }

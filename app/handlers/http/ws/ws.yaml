@@ -4,7 +4,7 @@ info:
   version: 1.0.0
 
 paths:
-  /ws/{roomId}:
+  /{roomId}:
     get:
       summary: Установить WebSocket-соединение
       description: Создаёт WebSocket-соединение для указанной комнаты.
@@ -18,20 +18,22 @@ paths:
           description: Уникальный идентификатор комнаты
           schema:
             type: string
-            format: uuid
             example: "550e8400-e29b-41d4-a716-446655440000"
       security: [ ]
       responses:
         "101":
           description: WebSocket-соединение установлено
-          content:
-            application/json:
+          headers:
+            Upgrade:
+              description: Должен быть "websocket"
               schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "WebSocket connection established"
+                type: string
+                example: "websocket"
+            Connection:
+              description: Должен быть "Upgrade"
+              schema:
+                type: string
+                example: "Upgrade"
         "400":
           description: Ошибка соединения (например, отсутствует roomId)
           content:

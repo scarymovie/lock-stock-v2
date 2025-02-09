@@ -46,7 +46,7 @@ func NewRouter(
 	})
 
 	r.Group(func(r chi.Router) {
-		r.With(middleware.LoggingMiddleware).Route("/ws/{roomId}", func(r chi.Router) {
+		r.Route("/{roomId}", func(r chi.Router) {
 			ws.HandlerFromMux(wsHandler, r)
 		})
 	})

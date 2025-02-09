@@ -8,16 +8,22 @@ import (
 
 func LoggingAllRequests(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Upgrade") == "websocket" {
+			next.ServeHTTP(w, r)
+			return
+		}
+
 		start := time.Now()
-
-		log.Printf("Request: Method=%s, URL=%s, RemoteAddr=%s", r.Method, r.URL.Path, r.RemoteAddr)
-
 		ww := &responseWriterWrapper{ResponseWriter: w, statusCode: http.StatusOK}
+
+		log.Printf("Before handler: URL=%s, Method=%s, Initial Status=%d", r.URL.Path, r.Method, ww.statusCode)
+
 		next.ServeHTTP(ww, r)
 
 		duration := time.Since(start)
 
-		log.Printf("Response: Status=%d, Duration=%s", ww.statusCode, duration)
+		log.Printf("After handler: URL=%s, Method=%s, Final Status=%d, Duration=%s",
+			r.URL.Path, r.Method, ww.statusCode, duration)
 	})
 }
 
@@ -27,7 +33,10 @@ type responseWriterWrapper struct {
 }
 
 func (rw *responseWriterWrapper) WriteHeader(statusCode int) {
-	log.Printf("WriteHeader called with status: %d", statusCode)
+	if rw.statusCode != http.StatusOK {
+		return
+	}
 	rw.statusCode = statusCode
+	log.Printf("WriteHeader called with status: %d", statusCode)
 	rw.ResponseWriter.WriteHeader(statusCode)
 }
