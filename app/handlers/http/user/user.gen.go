@@ -8,7 +8,6 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
 // RawCreateUser defines model for RawCreateUser.
@@ -18,8 +17,8 @@ type RawCreateUser struct {
 
 // User defines model for User.
 type User struct {
-	Name    *string             `json:"Name,omitempty"`
-	UserUid *openapi_types.UUID `json:"UserUid,omitempty"`
+	Name    *string `json:"Name,omitempty"`
+	UserUid *string `json:"UserUid,omitempty"`
 }
 
 // CreateUserJSONRequestBody defines body for CreateUser for application/json ContentType.

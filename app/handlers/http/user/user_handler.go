@@ -3,7 +3,6 @@ package user
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/google/uuid"
 	"lock-stock-v2/internal/domain/user/service"
 	"log"
 	"net/http"
@@ -32,7 +31,7 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var userUid = uuid.MustParse(user.Uid())
+	var userUid = user.Uid()
 	var userName = user.Name()
 
 	var responseData = User{
