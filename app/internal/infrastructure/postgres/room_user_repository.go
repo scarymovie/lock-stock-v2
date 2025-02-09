@@ -5,8 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"github.com/jackc/pgx/v5/pgxpool"
-	externalDomain "lock-stock-v2/external/domain"
-	internalDomain "lock-stock-v2/internal/domain"
+	roomModel "lock-stock-v2/internal/domain/room/model"
+	userModel "lock-stock-v2/internal/domain/room/model"
+	roomUserModel "lock-stock-v2/internal/domain/room_user/model"
+	UserModel "lock-stock-v2/internal/domain/user/model"
 	"log"
 	"time"
 )
@@ -19,9 +21,9 @@ func NewPostgresRoomUserRepository(db *pgxpool.Pool) *RoomUserRepository {
 	return &RoomUserRepository{db: db}
 }
 
-func (repo *RoomUserRepository) Save(roomUser externalDomain.RoomUser) error {
-	roomUid := roomUser.GetRoom().Uid()
-	userUid := roomUser.GetUser().Uid()
+func (repo *RoomUserRepository) Save(roomUser *roomUserModel.RoomUser) error {
+	roomUid := roomUser.Room().Uid()
+	userUid := roomUser.User().Uid()
 
 	query := `
 		INSERT INTO room_users (room_id, user_id)
@@ -40,9 +42,9 @@ func (repo *RoomUserRepository) Save(roomUser externalDomain.RoomUser) error {
 	return nil
 }
 
-func (repo *RoomUserRepository) FindByRoom(room externalDomain.Room) ([]externalDomain.RoomUser, error) {
+func (repo *RoomUserRepository) FindByRoom(room *roomModel.Room) ([]*roomUserModel.RoomUser, error) {
 	query := `
-		SELECT * FROM room_users ru
+		SELECT r.uid, r.status, u.uid, u.name FROM room_users ru
 		JOIN rooms r ON ru.room_id = r.id
 		JOIN users u ON ru.user_id = u.id
 		WHERE ru.room_id = (select id from rooms where uid = $1)
@@ -59,24 +61,24 @@ func (repo *RoomUserRepository) FindByRoom(room externalDomain.Room) ([]external
 	defer rows.Close()
 	log.Println("Query executed successfully, processing rows...")
 
-	var results []externalDomain.RoomUser
+	var results []*roomUserModel.RoomUser
 
 	for rows.Next() {
 		var (
 			roomUid    string
-			roomStatus externalDomain.RoomStatus
+			roomStatus userModel.RoomStatus
 			userUid    string
 			userName   string
 		)
 
-		if err := rows.Scan(&roomUid, &userUid, &userName); err != nil {
+		if err := rows.Scan(&roomUid, &roomStatus, &userUid, &userName); err != nil {
 			log.Printf("Failed to scan row: %v", err)
 			return nil, fmt.Errorf("failed to scan row: %w", err)
 		}
 
-		rm := internalDomain.NewRoom(userUid, roomStatus)
-		usr := internalDomain.NewUser(userUid, userName)
-		ru := internalDomain.NewRoomUser(rm, usr)
+		rm := roomModel.NewRoom(userUid, roomStatus)
+		usr := UserModel.NewUser(userUid, userName)
+		ru := roomUserModel.NewRoomUser(rm, usr)
 
 		results = append(results, ru)
 	}

@@ -16,7 +16,6 @@ func main() {
 		return
 	}
 
-	// Запуск HTTP-сервера.
 	port := ":8080"
 	fmt.Printf("Server is running on %s\n", port)
 	server := &http.Server{Addr: port, Handler: r}
@@ -26,7 +25,6 @@ func main() {
 		}
 	}()
 
-	// Слушаем сигнал завершения процесса
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit

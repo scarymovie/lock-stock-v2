@@ -5,18 +5,17 @@ package wire
 
 import (
 	"github.com/google/wire"
-
-	externalDomain "lock-stock-v2/external/domain"
-	externalUsecase "lock-stock-v2/external/usecase"
-	externalWs "lock-stock-v2/external/websocket"
-
-	internalUsecase "lock-stock-v2/internal/usecase"
-
+	"lock-stock-v2/internal/domain/room/repository"
+	roomUserRepository "lock-stock-v2/internal/domain/room_user/repository"
+	roomUserService "lock-stock-v2/internal/domain/room_user/service"
+	userRepository "lock-stock-v2/internal/domain/user/repository"
+	userService "lock-stock-v2/internal/domain/user/service"
+	externalWs "lock-stock-v2/internal/websocket"
 	"lock-stock-v2/test/inMemory"
 )
 
 type TestJoinRoomResult struct {
-	JoinRoom externalUsecase.JoinRoom
+	JoinRoom *roomUserService.JoinRoomService
 
 	RoomRepo     *inMemory.RoomRepository
 	UserRepo     *inMemory.UserRepository
@@ -25,7 +24,7 @@ type TestJoinRoomResult struct {
 }
 
 type TestCreateUserResult struct {
-	CreateUser externalUsecase.CreateUser
+	CreateUser *userService.CreateUserService
 	UserRepo   *inMemory.UserRepository
 }
 
@@ -41,6 +40,16 @@ func ProvideInMemoryRoomUserRepository() *inMemory.RoomUserRepository {
 	return inMemory.NewInMemoryRoomUserRepository()
 }
 
+func ProvideJoinRoomService(roomUserRepository roomUserRepository.RoomUserRepository,
+	wsManager externalWs.Manager,
+) *roomUserService.JoinRoomService {
+	return roomUserService.NewJoinRoomService(roomUserRepository, wsManager)
+}
+
+func ProvideCreateUserService(userRepository userRepository.UserRepository) *userService.CreateUserService {
+	return userService.NewCreateUser(userRepository)
+}
+
 func ProvideInMemoryWebSocketManager() externalWs.Manager {
 	return inMemory.NewInMemoryWebSocketManager()
 }
@@ -48,18 +57,16 @@ func ProvideInMemoryWebSocketManager() externalWs.Manager {
 var testSetWithStruct = wire.NewSet(
 
 	ProvideInMemoryRoomRepository,
-	wire.Bind(new(externalDomain.RoomRepository), new(*inMemory.RoomRepository)),
+	wire.Bind(new(repository.RoomRepository), new(*inMemory.RoomRepository)),
 
 	ProvideInMemoryUserRepository,
-	wire.Bind(new(externalDomain.UserRepository), new(*inMemory.UserRepository)),
+	wire.Bind(new(userRepository.UserRepository), new(*inMemory.UserRepository)),
 
 	ProvideInMemoryRoomUserRepository,
-	wire.Bind(new(externalDomain.RoomUserRepository), new(*inMemory.RoomUserRepository)),
+	wire.Bind(new(roomUserRepository.RoomUserRepository), new(*inMemory.RoomUserRepository)),
 
 	ProvideInMemoryWebSocketManager,
-
-	internalUsecase.NewJoinRoomUsecase,
-	wire.Bind(new(externalUsecase.JoinRoom), new(*internalUsecase.JoinRoomUsecase)),
+	ProvideJoinRoomService,
 
 	wire.Struct(new(TestJoinRoomResult), "*"),
 )
@@ -67,10 +74,9 @@ var testSetWithStruct = wire.NewSet(
 var testSetCreateUser = wire.NewSet(
 
 	ProvideInMemoryUserRepository,
-	wire.Bind(new(externalDomain.UserRepository), new(*inMemory.UserRepository)),
+	wire.Bind(new(userRepository.UserRepository), new(*inMemory.UserRepository)),
 
-	internalUsecase.NewCreateUser,
-	wire.Bind(new(externalUsecase.CreateUser), new(*internalUsecase.CreateUser)),
+	ProvideCreateUserService,
 
 	wire.Struct(new(TestCreateUserResult), "*"),
 )

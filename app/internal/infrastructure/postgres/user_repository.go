@@ -5,8 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/jackc/pgx/v5/pgxpool"
-	externalDomain "lock-stock-v2/external/domain"
-	internalDomain "lock-stock-v2/internal/domain"
+	"lock-stock-v2/internal/domain/user/model"
 	"time"
 )
 
@@ -18,7 +17,7 @@ func NewPostgresUserRepository(db *pgxpool.Pool) *UserRepository {
 	return &UserRepository{db: db}
 }
 
-func (repo *UserRepository) FindById(userId string) (externalDomain.User, error) {
+func (repo *UserRepository) FindById(userId string) (*model.User, error) {
 	var tempUid string
 	var tempName string
 
@@ -32,16 +31,11 @@ func (repo *UserRepository) FindById(userId string) (externalDomain.User, error)
 		return nil, errors.New("user not found: " + err.Error())
 	}
 
-	newUser := internalDomain.NewUser(tempUid, tempName)
+	newUser := model.NewUser(tempUid, tempName)
 	return newUser, nil
 }
 
-func (repo *UserRepository) SaveUser(user externalDomain.User) error {
-	u, ok := user.(*internalDomain.User)
-	if !ok {
-		return errors.New("invalid RoomUser type")
-	}
-
+func (repo *UserRepository) SaveUser(user *model.User) error {
 	query := `
         INSERT INTO users (uid, name)
         VALUES ($1, $2)
@@ -52,7 +46,7 @@ func (repo *UserRepository) SaveUser(user externalDomain.User) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	_, err := repo.db.Exec(ctx, query, u.Uid(), u.Name())
+	_, err := repo.db.Exec(ctx, query, user.Uid(), user.Name())
 	if err != nil {
 		return fmt.Errorf("failed to save user: %w", err)
 	}

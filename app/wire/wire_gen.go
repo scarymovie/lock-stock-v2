@@ -9,12 +9,18 @@ package wire
 import (
 	"errors"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"lock-stock-v2/external/websocket"
-	"lock-stock-v2/internal/domain/service"
-	"lock-stock-v2/internal/handlers"
+	"lock-stock-v2/handlers/http/room"
+	"lock-stock-v2/handlers/http/user"
+	"lock-stock-v2/handlers/http/ws"
+	"lock-stock-v2/internal/domain/room/repository"
+	"lock-stock-v2/internal/domain/room/service"
+	repository3 "lock-stock-v2/internal/domain/room_user/repository"
+	"lock-stock-v2/internal/domain/room_user/service"
+	repository2 "lock-stock-v2/internal/domain/user/repository"
+	service2 "lock-stock-v2/internal/domain/user/service"
 	"lock-stock-v2/internal/infrastructure/postgres"
 	websocket2 "lock-stock-v2/internal/infrastructure/websocket"
-	"lock-stock-v2/internal/usecase"
+	"lock-stock-v2/internal/websocket"
 	"lock-stock-v2/router"
 	"net/http"
 )
@@ -26,20 +32,18 @@ func InitializeRouter() (http.Handler, error) {
 	if err != nil {
 		return nil, err
 	}
-	roomUserRepository := postgres.NewPostgresRoomUserRepository(pool)
+	roomUserRepository := ProvideRoomUserRepository(pool)
 	manager := ProvideWebSocketManager()
-	joinRoomUsecase := usecase.NewJoinRoomUsecase(roomUserRepository, manager)
-	roomRepository := postgres.NewPostgresRoomRepository(pool)
-	roomUserService := services.NewRoomService(roomUserRepository)
-	joinRoom := handlers.NewJoinRoom(joinRoomUsecase, roomRepository, roomUserService)
-	getRooms := handlers.NewGetRooms(roomRepository)
-	webSocketHandler := handlers.NewWebSocketHandler(manager)
-	userRepository := postgres.NewPostgresUserRepository(pool)
-	createUser := usecase.NewCreateUser(userRepository)
-	handlersCreateUser := handlers.NewCreateUser(createUser)
-	startGameUsecase := usecase.NewStartGameUsecase(roomRepository, manager)
-	startGame := handlers.NewStartGame(roomRepository, roomUserService, startGameUsecase)
-	handler := router.NewRouter(joinRoom, getRooms, webSocketHandler, userRepository, handlersCreateUser, startGame)
+	joinRoomService := services.NewJoinRoomService(roomUserRepository, manager)
+	roomRepository := ProvideRoomRepository(pool)
+	userRepository := ProvideUserRepository(pool)
+	roomUserService := services.NewRoomUserService(roomUserRepository)
+	startGameService := service.NewStartGameService(roomRepository, manager)
+	roomHandler := ProvideRoomHandler(joinRoomService, roomRepository, userRepository, roomUserService, startGameService)
+	createUserService := service2.NewCreateUser(userRepository)
+	userHandler := ProvideUserHandler(createUserService)
+	webSocketHandler := ProvideWebSocketHandler(manager)
+	handler := router.NewRouter(roomHandler, userHandler, webSocketHandler, userRepository)
 	return handler, nil
 }
 
@@ -59,4 +63,34 @@ func ProvideWebSocketManager() websocket.Manager {
 	manager := websocket2.NewWebSocketManager()
 	go manager.Run()
 	return manager
+}
+
+func ProvideRoomHandler(
+	joinRoomService *services.JoinRoomService,
+	roomRepository repository.RoomRepository,
+	userRepository repository2.UserRepository,
+	roomUserService *services.RoomUserService,
+	startGameService *service.StartGameService,
+) *room.RoomHandler {
+	return room.NewRoomHandler(joinRoomService, roomRepository, userRepository, roomUserService, startGameService)
+}
+
+func ProvideUserHandler(createUserService *service2.CreateUserService) *user.UserHandler {
+	return user.NewUserHandler(createUserService)
+}
+
+func ProvideWebSocketHandler(manager websocket.Manager) *ws.WebSocketHandler {
+	return ws.NewWebSocketHandler(manager)
+}
+
+func ProvideRoomRepository(db *pgxpool.Pool) repository.RoomRepository {
+	return postgres.NewPostgresRoomRepository(db)
+}
+
+func ProvideUserRepository(db *pgxpool.Pool) repository2.UserRepository {
+	return postgres.NewPostgresUserRepository(db)
+}
+
+func ProvideRoomUserRepository(db *pgxpool.Pool) repository3.RoomUserRepository {
+	return postgres.NewPostgresRoomUserRepository(db)
 }

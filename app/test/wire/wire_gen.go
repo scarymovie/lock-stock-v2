@@ -8,10 +8,12 @@ package wire
 
 import (
 	"github.com/google/wire"
-	"lock-stock-v2/external/domain"
-	usecase2 "lock-stock-v2/external/usecase"
-	"lock-stock-v2/external/websocket"
-	"lock-stock-v2/internal/usecase"
+	repository3 "lock-stock-v2/internal/domain/room/repository"
+	"lock-stock-v2/internal/domain/room_user/repository"
+	"lock-stock-v2/internal/domain/room_user/service"
+	repository2 "lock-stock-v2/internal/domain/user/repository"
+	"lock-stock-v2/internal/domain/user/service"
+	"lock-stock-v2/internal/websocket"
 	"lock-stock-v2/test/inMemory"
 )
 
@@ -20,11 +22,11 @@ import (
 func InitializeTestJoinRoomResult() TestJoinRoomResult {
 	roomUserRepository := ProvideInMemoryRoomUserRepository()
 	manager := ProvideInMemoryWebSocketManager()
-	joinRoomUsecase := usecase.NewJoinRoomUsecase(roomUserRepository, manager)
+	joinRoomService := ProvideJoinRoomService(roomUserRepository, manager)
 	roomRepository := ProvideInMemoryRoomRepository()
 	userRepository := ProvideInMemoryUserRepository()
 	testJoinRoomResult := TestJoinRoomResult{
-		JoinRoom:     joinRoomUsecase,
+		JoinRoom:     joinRoomService,
 		RoomRepo:     roomRepository,
 		UserRepo:     userRepository,
 		RoomUserRepo: roomUserRepository,
@@ -35,9 +37,9 @@ func InitializeTestJoinRoomResult() TestJoinRoomResult {
 
 func InitializeTestCreateUserResult() TestCreateUserResult {
 	userRepository := ProvideInMemoryUserRepository()
-	createUser := usecase.NewCreateUser(userRepository)
+	createUserService := ProvideCreateUserService(userRepository)
 	testCreateUserResult := TestCreateUserResult{
-		CreateUser: createUser,
+		CreateUser: createUserService,
 		UserRepo:   userRepository,
 	}
 	return testCreateUserResult
@@ -46,7 +48,7 @@ func InitializeTestCreateUserResult() TestCreateUserResult {
 // wire.go:
 
 type TestJoinRoomResult struct {
-	JoinRoom usecase2.JoinRoom
+	JoinRoom *services.JoinRoomService
 
 	RoomRepo     *inMemory.RoomRepository
 	UserRepo     *inMemory.UserRepository
@@ -55,7 +57,7 @@ type TestJoinRoomResult struct {
 }
 
 type TestCreateUserResult struct {
-	CreateUser usecase2.CreateUser
+	CreateUser *service.CreateUserService
 	UserRepo   *inMemory.UserRepository
 }
 
@@ -71,16 +73,27 @@ func ProvideInMemoryRoomUserRepository() *inMemory.RoomUserRepository {
 	return inMemory.NewInMemoryRoomUserRepository()
 }
 
+func ProvideJoinRoomService(roomUserRepository repository.RoomUserRepository,
+	wsManager websocket.Manager,
+) *services.JoinRoomService {
+	return services.NewJoinRoomService(roomUserRepository, wsManager)
+}
+
+func ProvideCreateUserService(userRepository repository2.UserRepository) *service.CreateUserService {
+	return service.NewCreateUser(userRepository)
+}
+
 func ProvideInMemoryWebSocketManager() websocket.Manager {
 	return inMemory.NewInMemoryWebSocketManager()
 }
 
 var testSetWithStruct = wire.NewSet(
 
-	ProvideInMemoryRoomRepository, wire.Bind(new(domain.RoomRepository), new(*inMemory.RoomRepository)), ProvideInMemoryUserRepository, wire.Bind(new(domain.UserRepository), new(*inMemory.UserRepository)), ProvideInMemoryRoomUserRepository, wire.Bind(new(domain.RoomUserRepository), new(*inMemory.RoomUserRepository)), ProvideInMemoryWebSocketManager, usecase.NewJoinRoomUsecase, wire.Bind(new(usecase2.JoinRoom), new(*usecase.JoinRoomUsecase)), wire.Struct(new(TestJoinRoomResult), "*"),
+	ProvideInMemoryRoomRepository, wire.Bind(new(repository3.RoomRepository), new(*inMemory.RoomRepository)), ProvideInMemoryUserRepository, wire.Bind(new(repository2.UserRepository), new(*inMemory.UserRepository)), ProvideInMemoryRoomUserRepository, wire.Bind(new(repository.RoomUserRepository), new(*inMemory.RoomUserRepository)), ProvideInMemoryWebSocketManager,
+	ProvideJoinRoomService, wire.Struct(new(TestJoinRoomResult), "*"),
 )
 
 var testSetCreateUser = wire.NewSet(
 
-	ProvideInMemoryUserRepository, wire.Bind(new(domain.UserRepository), new(*inMemory.UserRepository)), usecase.NewCreateUser, wire.Bind(new(usecase2.CreateUser), new(*usecase.CreateUser)), wire.Struct(new(TestCreateUserResult), "*"),
+	ProvideInMemoryUserRepository, wire.Bind(new(repository2.UserRepository), new(*inMemory.UserRepository)), ProvideCreateUserService, wire.Struct(new(TestCreateUserResult), "*"),
 )

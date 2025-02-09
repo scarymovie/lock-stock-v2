@@ -4,8 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	externalDomain "lock-stock-v2/external/domain"
-	"lock-stock-v2/internal/domain"
+	"lock-stock-v2/internal/domain/room/model"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -19,11 +18,11 @@ func NewPostgresRoomRepository(db *pgxpool.Pool) *RoomRepository {
 	return &RoomRepository{db: db}
 }
 
-func (repo *RoomRepository) FindById(roomId string) (externalDomain.Room, error) {
+func (repo *RoomRepository) FindById(roomId string) (*model.Room, error) {
 	var tempUid string
-	var tempStatus externalDomain.RoomStatus
+	var tempStatus model.RoomStatus
 
-	query := `SELECT id, uid FROM rooms WHERE uid = $1`
+	query := `SELECT uid, status FROM rooms WHERE uid = $1`
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -33,13 +32,13 @@ func (repo *RoomRepository) FindById(roomId string) (externalDomain.Room, error)
 		return nil, errors.New("room not found: " + err.Error())
 	}
 
-	return domain.NewRoom(tempUid, tempStatus), nil
+	return model.NewRoom(tempUid, tempStatus), nil
 }
 
-func (repo *RoomRepository) GetPending() ([]externalDomain.Room, error) {
+func (repo *RoomRepository) GetPending() ([]*model.Room, error) {
 	var tempId int
 	var tempUid string
-	var tempStatus externalDomain.RoomStatus
+	var tempStatus model.RoomStatus
 
 	query := `SELECT * FROM rooms where rooms.status = 'pending'`
 
@@ -52,12 +51,12 @@ func (repo *RoomRepository) GetPending() ([]externalDomain.Room, error) {
 	}
 	defer rows.Close()
 
-	var rooms []externalDomain.Room
+	var rooms []*model.Room
 	for rows.Next() {
 		if err := rows.Scan(&tempId, &tempUid, &tempStatus); err != nil {
 			return nil, err
 		}
-		room := domain.NewRoom(tempUid, tempStatus)
+		room := model.NewRoom(tempUid, tempStatus)
 		rooms = append(rooms, room)
 	}
 
@@ -68,7 +67,7 @@ func (repo *RoomRepository) GetPending() ([]externalDomain.Room, error) {
 	return rooms, nil
 }
 
-func (repo *RoomRepository) Save(room externalDomain.Room) error {
+func (repo *RoomRepository) Save(room *model.Room) error {
 	query := `
 		INSERT INTO rooms (uid)
 		VALUES ($1)
@@ -86,7 +85,7 @@ func (repo *RoomRepository) Save(room externalDomain.Room) error {
 	return nil
 }
 
-func (repo *RoomRepository) UpdateRoomStatus(room externalDomain.Room) error {
+func (repo *RoomRepository) UpdateRoomStatus(room *model.Room) error {
 	query := `
 		UPDATE rooms
 		SET status = $1
