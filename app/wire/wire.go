@@ -43,8 +43,9 @@ func ProvideRoomHandler(
 	joinRoomService *roomUserService.JoinRoomService,
 	roomRepository roomRepository.RoomRepository,
 	roomUserService *roomUserService.RoomUserService,
+	startGameService *roomService.StartGameService,
 ) *room.RoomHandler {
-	return room.NewRoomHandler(joinRoomService, roomRepository, roomUserService)
+	return room.NewRoomHandler(joinRoomService, roomRepository, roomUserService, startGameService)
 }
 
 func ProvideUserHandler(createUserService *userService.CreateUserService) *user.UserHandler {
@@ -73,8 +74,8 @@ func InitializeRouter() (http.Handler, error) {
 		ProvidePostgresPool,
 
 		// Services
-		roomUserService.NewJoinRoom,
-		roomUserService.NewRoomService,
+		roomUserService.NewJoinRoomService,
+		roomUserService.NewRoomUserService,
 		userService.NewCreateUser,
 		roomService.NewStartGameService,
 

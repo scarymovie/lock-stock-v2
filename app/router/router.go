@@ -13,9 +13,9 @@ import (
 )
 
 func NewRouter(
-	roomHandler room.RoomHandler,
-	userHandler user.UserHandler,
-	wsHandler ws.WebSocketHandler,
+	roomHandler *room.RoomHandler,
+	userHandler *user.UserHandler,
+	wsHandler *ws.WebSocketHandler,
 	userRepository repository.UserRepository,
 ) http.Handler {
 	r := chi.NewRouter()
@@ -35,19 +35,19 @@ func NewRouter(
 			middleware.LoggingMiddleware,
 			middleware.UserAuthMiddleware(userRepository),
 		).Route("/room", func(r chi.Router) {
-			room.HandlerFromMux(&roomHandler, r)
+			room.HandlerFromMux(roomHandler, r)
 		})
 	})
 
 	r.Group(func(r chi.Router) {
 		r.With(middleware.LoggingMiddleware).Route("/user", func(r chi.Router) {
-			user.HandlerFromMux(&userHandler, r)
+			user.HandlerFromMux(userHandler, r)
 		})
 	})
 
 	r.Group(func(r chi.Router) {
 		r.With(middleware.LoggingMiddleware).Route("/ws/{roomId}", func(r chi.Router) {
-			ws.HandlerFromMux(&wsHandler, r)
+			ws.HandlerFromMux(wsHandler, r)
 		})
 	})
 

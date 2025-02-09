@@ -12,7 +12,7 @@ type RoomUserService struct {
 	roomUsersRepository repository.RoomUserRepository
 }
 
-func NewRoomService(roomUsersRepository repository.RoomUserRepository) *RoomUserService {
+func NewRoomUserService(roomUsersRepository repository.RoomUserRepository) *RoomUserService {
 	return &RoomUserService{roomUsersRepository: roomUsersRepository}
 }
 

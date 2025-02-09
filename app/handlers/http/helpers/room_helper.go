@@ -24,7 +24,7 @@ func GetRoomById(roomRepository repository.RoomRepository, roomID string) (*mode
 	}
 
 	log.Printf("Room retrieved: UID=%s", room.Uid())
-	return &room, nil
+	return room, nil
 }
 
 func (e *RoomNotFoundError) Error() string {

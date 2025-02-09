@@ -20,7 +20,7 @@ type JoinRoomRequest struct {
 	Room *roomModel.Room
 }
 
-func NewJoinRoom(
+func NewJoinRoomService(
 	roomUserRepository repository.RoomUserRepository,
 	webSocketManager internalWs.Manager,
 ) *JoinRoomService {

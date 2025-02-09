@@ -2,7 +2,6 @@ package inMemory
 
 import (
 	"errors"
-	api "lock-stock-v2/external/domain"
 	"lock-stock-v2/internal/domain/room/model"
 )
 
@@ -16,7 +15,7 @@ func NewInMemoryRoomRepository() *RoomRepository {
 	}
 }
 
-func (repo *RoomRepository) FindById(roomId string) (api.Room, error) {
+func (repo *RoomRepository) FindById(roomId string) (*model.Room, error) {
 	room, exists := repo.rooms[roomId]
 	if !exists {
 		return nil, errors.New("room not found")
@@ -24,16 +23,19 @@ func (repo *RoomRepository) FindById(roomId string) (api.Room, error) {
 	return room, nil
 }
 
-func (repo *RoomRepository) Save(room api.Room) error {
-	r, ok := room.(*model.Room)
-	if !ok {
-		return errors.New("invalid room type")
-	}
-
-	repo.rooms[r.Uid()] = r
+func (repo *RoomRepository) Save(room *model.Room) error {
+	repo.rooms[room.Uid()] = room
 	return nil
 }
 
 func (repo *RoomRepository) Count() int {
 	return len(repo.rooms)
+}
+
+func (repo *RoomRepository) UpdateRoomStatus(room *model.Room) error {
+	return nil
+}
+
+func (repo *RoomRepository) GetPending() ([]*model.Room, error) {
+	return nil, nil
 }

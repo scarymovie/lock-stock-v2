@@ -1,12 +1,10 @@
 package usecase
 
 import (
-	"testing"
-
 	"github.com/stretchr/testify/require"
-	externalUsecase "lock-stock-v2/external/usecase"
-
+	services "lock-stock-v2/internal/domain/room_user/service"
 	wireTest "lock-stock-v2/test/wire"
+	"testing"
 )
 
 func TestJoinRoom_Success(t *testing.T) {
@@ -23,7 +21,7 @@ func TestJoinRoom_Success(t *testing.T) {
 	deps.UserRepo.SaveUser(user)
 	deps.RoomRepo.Save(room)
 
-	request := externalUsecase.JoinRoomRequest{
+	request := services.JoinRoomRequest{
 		User: user,
 		Room: room,
 	}

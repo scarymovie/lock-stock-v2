@@ -3,7 +3,7 @@ package inMemory
 import (
 	"errors"
 	"fmt"
-	api "lock-stock-v2/external/domain"
+	roomModel "lock-stock-v2/internal/domain/room/model"
 	"lock-stock-v2/internal/domain/room_user/model"
 )
 
@@ -17,22 +17,17 @@ func NewInMemoryRoomUserRepository() *RoomUserRepository {
 	}
 }
 
-func (repo *RoomUserRepository) Save(roomUser api.RoomUser) error {
-	ru, ok := roomUser.(*model.RoomUser)
-	if !ok {
-		return errors.New("invalid RoomUser type")
-	}
+func (repo *RoomUserRepository) Save(roomUser *model.RoomUser) error {
+	key := fmt.Sprintf("%s:%s", roomUser.Room().Uid(), roomUser.User().Uid())
 
-	key := fmt.Sprintf("%s:%s", ru.Room().Uid(), ru.User().Uid())
-
-	repo.roomUsers[key] = ru
+	repo.roomUsers[key] = roomUser
 	return nil
 }
 
-func (repo *RoomUserRepository) FindByRoom(room api.Room) ([]api.RoomUser, error) {
+func (repo *RoomUserRepository) FindByRoom(room *roomModel.Room) ([]*model.RoomUser, error) {
 	roomUid := room.Uid()
 
-	var result []api.RoomUser
+	var result []*model.RoomUser
 	for _, ru := range repo.roomUsers {
 		if ru.Room().Uid() == roomUid {
 			result = append(result, ru)

@@ -20,8 +20,18 @@ type RoomHandler struct {
 	startGameService *service.StartGameService
 }
 
-func NewRoomHandler(u *services.JoinRoomService, roomRepository repository.RoomRepository, roomUserService *services.RoomUserService) *RoomHandler {
-	return &RoomHandler{joinRoomService: u, roomRepository: roomRepository, roomUserService: roomUserService}
+func NewRoomHandler(
+	u *services.JoinRoomService,
+	roomRepository repository.RoomRepository,
+	roomUserService *services.RoomUserService,
+	startGameService *service.StartGameService,
+) *RoomHandler {
+	return &RoomHandler{
+		joinRoomService:  u,
+		roomRepository:   roomRepository,
+		roomUserService:  roomUserService,
+		startGameService: startGameService,
+	}
 }
 
 func (h *RoomHandler) GetRooms(w http.ResponseWriter, r *http.Request) {

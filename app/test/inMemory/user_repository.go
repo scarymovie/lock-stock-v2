@@ -2,7 +2,6 @@ package inMemory
 
 import (
 	"errors"
-	api "lock-stock-v2/external/domain"
 	"lock-stock-v2/internal/domain/user/model"
 )
 
@@ -16,7 +15,7 @@ func NewInMemoryUserRepository() *UserRepository {
 	}
 }
 
-func (repo *UserRepository) FindById(userId string) (api.User, error) {
+func (repo *UserRepository) FindById(userId string) (*model.User, error) {
 	user, exists := repo.users[userId]
 	if !exists {
 		return nil, errors.New("user not found")
@@ -24,13 +23,8 @@ func (repo *UserRepository) FindById(userId string) (api.User, error) {
 	return user, nil
 }
 
-func (repo *UserRepository) SaveUser(user api.User) error {
-	u, ok := user.(*model.User)
-	if !ok {
-		return errors.New("invalid user type")
-	}
-
-	repo.users[u.Uid()] = u
+func (repo *UserRepository) SaveUser(user *model.User) error {
+	repo.users[user.Uid()] = user
 	return nil
 }
 
