@@ -53,7 +53,7 @@ components:
     User:
       type: object
       properties:
-        UserUid:
+        UserId:
           type: string
           example: "usr-550e8400-e29b-41d4-a716-446655440000"
         Name:

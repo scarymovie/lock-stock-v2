@@ -113,9 +113,9 @@ components:
     JoinRoomResponse:
       type: object
       properties:
-        roomUid:
+        roomId:
           type: string
-        userUid:
+        userId:
           type: string
         userName:
           type: string

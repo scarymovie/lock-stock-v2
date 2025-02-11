@@ -126,8 +126,8 @@ func (h *RoomHandler) JoinRoom(w http.ResponseWriter, r *http.Request, roomId st
 		roomFromRoomUser := ru.Room()
 		u := ru.User()
 		response = append(response, JoinRoomResponse{
-			RoomUid:  ptr(roomFromRoomUser.Uid()),
-			UserUid:  ptr(u.Uid()),
+			RoomId:   ptr(roomFromRoomUser.Uid()),
+			UserId:   ptr(u.Uid()),
 			UserName: ptr(u.Name()),
 		})
 	}

@@ -35,8 +35,8 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	var userName = user.Name()
 
 	var responseData = User{
-		UserUid: &userUid,
-		Name:    &userName,
+		UserId: &userUid,
+		Name:   &userName,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
