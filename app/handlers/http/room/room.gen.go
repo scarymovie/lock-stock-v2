@@ -18,9 +18,10 @@ const (
 
 // JoinRoomResponse defines model for JoinRoomResponse.
 type JoinRoomResponse struct {
-	RoomId   *string `json:"roomId,omitempty"`
-	UserId   *string `json:"userId,omitempty"`
-	UserName *string `json:"userName,omitempty"`
+	RoomId      string `json:"roomId"`
+	UserBalance string `json:"userBalance"`
+	UserId      string `json:"userId"`
+	UserName    string `json:"userName"`
 }
 
 // RoomResponse defines model for RoomResponse.

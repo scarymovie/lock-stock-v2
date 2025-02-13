@@ -126,16 +126,13 @@ func (h *RoomHandler) JoinRoom(w http.ResponseWriter, r *http.Request, roomId st
 		roomFromRoomUser := ru.Room()
 		u := ru.User()
 		response = append(response, JoinRoomResponse{
-			RoomId:   ptr(roomFromRoomUser.Uid()),
-			UserId:   ptr(u.Uid()),
-			UserName: ptr(u.Name()),
+			RoomId:      roomFromRoomUser.Uid(),
+			UserId:      u.Uid(),
+			UserName:    u.Name(),
+			UserBalance: "5000",
 		})
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
-}
-
-func ptr(s string) *string {
-	return &s
 }
