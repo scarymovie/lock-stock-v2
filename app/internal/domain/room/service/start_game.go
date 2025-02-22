@@ -35,8 +35,10 @@ func (uc *StartGameService) StartGame(req StartGameRequest) error {
 	}
 
 	message := map[string]string{
-		"event":   "game_started",
-		"roomUid": req.Room.Uid(),
+		"event":            "game_started",
+		"roomUid":          req.Room.Uid(),
+		"questionDuration": "60",
+		"actionDuration":   "30",
 	}
 
 	jsonMessage, err := json.Marshal(message)
