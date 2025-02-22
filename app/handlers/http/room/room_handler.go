@@ -88,11 +88,15 @@ func (h *RoomHandler) StartGame(w http.ResponseWriter, r *http.Request, roomId s
 		Room: room,
 		User: user,
 	}
+
 	if err := h.startGameService.StartGame(req); err != nil {
 		http.Error(w, "Failed to start game: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
+	// start first round
+
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]string{"message": "Game started"})
 }
@@ -123,13 +127,10 @@ func (h *RoomHandler) JoinRoom(w http.ResponseWriter, r *http.Request, roomId st
 
 	var response []JoinRoomResponse
 	for _, ru := range roomUsers {
-		roomFromRoomUser := ru.Room()
-		u := ru.User()
 		response = append(response, JoinRoomResponse{
-			RoomId:      roomFromRoomUser.Uid(),
-			UserId:      u.Uid(),
-			UserName:    u.Name(),
-			UserBalance: "5000",
+			RoomId:   ru.Room().Uid(),
+			UserId:   ru.User().Uid(),
+			UserName: ru.User().Name(),
 		})
 	}
 

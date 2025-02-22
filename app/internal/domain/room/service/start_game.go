@@ -4,14 +4,18 @@ import (
 	"encoding/json"
 	roomModel "lock-stock-v2/internal/domain/room/model"
 	"lock-stock-v2/internal/domain/room/repository"
+	roomUserRepository "lock-stock-v2/internal/domain/room_user/repository"
 	userModel "lock-stock-v2/internal/domain/user/model"
 	"lock-stock-v2/internal/websocket"
 	"log"
 )
 
+const roomBalance = 5000
+
 type StartGameService struct {
-	roomRepository repository.RoomRepository
-	webSocket      websocket.Manager
+	roomRepository     repository.RoomRepository
+	webSocket          websocket.Manager
+	roomUserRepository roomUserRepository.RoomUserRepository
 }
 
 type StartGameRequest struct {
@@ -21,9 +25,10 @@ type StartGameRequest struct {
 
 func NewStartGameService(
 	roomRepository repository.RoomRepository,
+	roomUserRepository roomUserRepository.RoomUserRepository,
 	webSocket websocket.Manager,
 ) *StartGameService {
-	return &StartGameService{roomRepository: roomRepository, webSocket: webSocket}
+	return &StartGameService{roomRepository: roomRepository, webSocket: webSocket, roomUserRepository: roomUserRepository}
 }
 
 func (uc *StartGameService) StartGame(req StartGameRequest) error {
@@ -34,11 +39,22 @@ func (uc *StartGameService) StartGame(req StartGameRequest) error {
 		return err
 	}
 
-	message := map[string]string{
+	rooms, err := uc.roomUserRepository.FindByRoom(req.Room)
+	if err != nil {
+		log.Println("Failed to get rooms:", err)
+		return err
+	}
+
+	for _, room := range rooms {
+		room.SetBalance(roomBalance)
+	}
+
+	message := map[string]interface{}{
 		"event":            "game_started",
 		"roomUid":          req.Room.Uid(),
 		"questionDuration": "60",
 		"actionDuration":   "30",
+		"userBalance":      roomBalance,
 	}
 
 	jsonMessage, err := json.Marshal(message)

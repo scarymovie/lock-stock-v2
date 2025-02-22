@@ -119,13 +119,10 @@ components:
           type: string
         userName:
           type: string
-        userBalance:
-          type: string
       required:
         - roomId
         - userId
         - userName
-        - userBalance
 
     RoomResponse:
       type: object
