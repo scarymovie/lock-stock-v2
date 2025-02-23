@@ -6,9 +6,8 @@ import (
 )
 
 type RoomUser struct {
-	room    *roomModel.Room
-	user    *userModel.User
-	balance *int
+	room *roomModel.Room
+	user *userModel.User
 }
 
 func NewRoomUser(room *roomModel.Room, user *userModel.User) *RoomUser {
@@ -29,12 +28,4 @@ func (ru *RoomUser) Room() *roomModel.Room {
 
 func (ru *RoomUser) User() *userModel.User {
 	return ru.user
-}
-
-func (ru *RoomUser) Balance() *int {
-	return ru.balance
-}
-
-func (ru *RoomUser) SetBalance(balance int) {
-	ru.balance = &balance
 }

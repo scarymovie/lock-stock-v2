@@ -10,8 +10,6 @@ import (
 	"log"
 )
 
-const roomBalance = 5000
-
 type StartGameService struct {
 	roomRepository     repository.RoomRepository
 	webSocket          websocket.Manager
@@ -39,22 +37,11 @@ func (uc *StartGameService) StartGame(req StartGameRequest) error {
 		return err
 	}
 
-	rooms, err := uc.roomUserRepository.FindByRoom(req.Room)
-	if err != nil {
-		log.Println("Failed to get rooms:", err)
-		return err
-	}
-
-	for _, room := range rooms {
-		room.SetBalance(roomBalance)
-	}
-
 	message := map[string]interface{}{
 		"event":            "game_started",
 		"roomUid":          req.Room.Uid(),
 		"questionDuration": "60",
 		"actionDuration":   "30",
-		"userBalance":      roomBalance,
 	}
 
 	jsonMessage, err := json.Marshal(message)
