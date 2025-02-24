@@ -2,6 +2,7 @@ package service
 
 import (
 	"encoding/json"
+	gameService "lock-stock-v2/internal/domain/game/service"
 	roomModel "lock-stock-v2/internal/domain/room/model"
 	"lock-stock-v2/internal/domain/room/repository"
 	roomUserRepository "lock-stock-v2/internal/domain/room_user/repository"
@@ -14,6 +15,7 @@ type StartGameService struct {
 	roomRepository     repository.RoomRepository
 	webSocket          websocket.Manager
 	roomUserRepository roomUserRepository.RoomUserRepository
+	createGame         gameService.CreateGameService
 }
 
 type StartGameRequest struct {
@@ -37,11 +39,13 @@ func (uc *StartGameService) StartGame(req StartGameRequest) error {
 		return err
 	}
 
+	game := uc.createGame.CreateGame(req.Room)
+
 	message := map[string]interface{}{
 		"event":            "game_started",
 		"roomUid":          req.Room.Uid(),
-		"questionDuration": "60",
-		"actionDuration":   "30",
+		"questionDuration": game.QuestionDuration(),
+		"actionDuration":   game.ActionDuration(),
 	}
 
 	jsonMessage, err := json.Marshal(message)

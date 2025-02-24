@@ -10,6 +10,7 @@ import (
 	"lock-stock-v2/handlers/http/room"
 	"lock-stock-v2/handlers/http/user"
 	"lock-stock-v2/handlers/http/ws"
+	gameService "lock-stock-v2/internal/domain/game/service"
 	roomRepository "lock-stock-v2/internal/domain/room/repository"
 	roomService "lock-stock-v2/internal/domain/room/service"
 	roomUserRepository "lock-stock-v2/internal/domain/room_user/repository"
@@ -79,6 +80,8 @@ func InitializeRouter() (http.Handler, error) {
 		roomUserService.NewRoomUserService,
 		userService.NewCreateUser,
 		roomService.NewStartGameService,
+		gameService.NewCreateGameService,
+		gameService.NewCreateRoundService,
 
 		// Handlers
 		ProvideWebSocketHandler,
