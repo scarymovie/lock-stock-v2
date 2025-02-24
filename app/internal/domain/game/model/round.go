@@ -4,6 +4,7 @@ type Round struct {
 	number   *uint
 	question *Question
 	buyIn    uint
+	pot      uint
 	game     *LockStockGame
 }
 

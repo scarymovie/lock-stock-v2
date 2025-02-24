@@ -7,11 +7,10 @@ type LockStockGame struct {
 	actionDuration   string
 	questionDuration string
 	room             *model.Room
-	players          []*Player
 }
 
-func NewLockStockGame(uid string, actionDuration string, questionDuration string, room *model.Room, players []*Player) *LockStockGame {
-	return &LockStockGame{uid: uid, actionDuration: actionDuration, questionDuration: questionDuration, room: room, players: players}
+func NewLockStockGame(uid string, actionDuration string, questionDuration string, room *model.Room) *LockStockGame {
+	return &LockStockGame{uid: uid, actionDuration: actionDuration, questionDuration: questionDuration, room: room}
 }
 
 func (l *LockStockGame) ActionDuration() string {

@@ -3,14 +3,17 @@ package service
 import (
 	"github.com/google/uuid"
 	"lock-stock-v2/internal/domain/game/model"
+	"lock-stock-v2/internal/domain/game/repository"
 	roomModel "lock-stock-v2/internal/domain/room/model"
 	roomUserRepository "lock-stock-v2/internal/domain/room_user/repository"
 	"log"
 )
 
 type CreateGameService struct {
-	roomUserRepo roomUserRepository.RoomUserRepository
-	roundService CreateRoundService
+	roomUserRepo     roomUserRepository.RoomUserRepository
+	gameRepository   repository.GameRepository
+	playerRepository repository.PlayerRepository
+	roundService     CreateRoundService
 }
 
 func NewCreateGameService(roomUserRepo roomUserRepository.RoomUserRepository) *CreateGameService {
@@ -24,12 +27,15 @@ func (cgs *CreateGameService) CreateGame(room *roomModel.Room) *model.LockStockG
 		log.Println("aassdd")
 	}
 
+	game := model.NewLockStockGame("game"+uuid.New().String(), "30", "30", room)
+	cgs.gameRepository.Save(game)
+
 	var players []*model.Player
 	for _, roomUser := range roomUsers {
-		players = append(players, model.NewPlayer(roomUser, 5000))
+		player := model.NewPlayer(roomUser, 5000, model.StatusPlaying, game)
+		cgs.playerRepository.Save(player)
+		players = append(players, player)
 	}
-
-	game := model.NewLockStockGame("game"+uuid.New().String(), "30", "30", room, players)
 
 	cgs.roundService.CreateRound(game, players)
 	return game
