@@ -18,7 +18,11 @@ type Player struct {
 	game    *LockStockGame
 }
 
-func (p Player) Balance() uint {
+func (p *Player) SetBalance(balance uint) {
+	p.balance = balance
+}
+
+func (p *Player) Balance() uint {
 	return p.balance
 }
 

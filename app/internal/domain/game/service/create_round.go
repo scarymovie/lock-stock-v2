@@ -32,12 +32,14 @@ func (s *CreateRoundService) CreateRound(game *model.LockStockGame, players []*m
 
 	roundPrice := roundCoefficient * roundNumber
 
-	for _, player := range players {
-		if player.Balance() < roundPrice {
-			model.NewBet(player, player.Balance(), round)
+	for i, player := range players {
+		if roundPrice > player.Balance() {
+			model.NewBet(player, player.Balance(), round, uint(i+1))
+			player.SetBalance(0)
 			continue
 		}
-		model.NewBet(player, roundPrice, round)
+		model.NewBet(player, roundPrice, round, uint(i+1))
+		player.SetBalance(player.Balance() - roundPrice)
 	}
 
 	s.roundRepo.Save(round)
