@@ -22,10 +22,10 @@ func NewPostgresRoundRepository(db *pgxpool.Pool) *RoundRepository {
 func (repo *RoundRepository) FindByGame(game *model.LockStockGame) ([]*model.Round, error) {
 	query := `
         SELECT
-            r.id,
-            r.round_number,
-            r.question,
-            r.price,
+            r.uid,
+            r.number,
+            r.buy_in,
+            r.pot,
             r.game_id
         FROM rounds r
         WHERE r.game_id = (SELECT id FROM lock_stock_games WHERE uid = $1)
@@ -42,14 +42,16 @@ func (repo *RoundRepository) FindByGame(game *model.LockStockGame) ([]*model.Rou
 
 	var rounds []*model.Round
 	for rows.Next() {
-		var round model.Round
+		var roundUid string
+		var roundNumber uint
+		var roundBuyIn uint
 		var gameID uint
+		var round model.Round
 
 		err := rows.Scan(
-			&round.ID,
-			&round.RoundNumber,
-			&round.QuestionText,
-			&round.Price,
+			&roundUid,
+			&roundNumber,
+			&roundBuyIn,
 			&gameID,
 		)
 		if err != nil {
@@ -69,17 +71,18 @@ func (repo *RoundRepository) FindByGame(game *model.LockStockGame) ([]*model.Rou
 
 func (repo *RoundRepository) Save(round *model.Round) error {
 	query := `
-        INSERT INTO rounds (round_number, question, price, game_id)
-        VALUES ($1, $2, $3, (SELECT id FROM lock_stock_games WHERE uid = $4))
+        INSERT INTO rounds (uid, number, buy_in, pot, game_id)
+        VALUES ($1, $2, $3, $4, (SELECT id FROM lock_stock_games WHERE uid = $5))
     `
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	// @todo questions
 	_, err := repo.db.Exec(ctx, query,
+		round.Uid(),
 		round.Number(),
 		round.BuyIn(),
+		round.Pot(),
 		round.Game().Uid(),
 	)
 

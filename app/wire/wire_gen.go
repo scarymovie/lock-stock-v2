@@ -12,12 +12,14 @@ import (
 	"lock-stock-v2/handlers/http/room"
 	"lock-stock-v2/handlers/http/user"
 	"lock-stock-v2/handlers/http/ws"
+	repository4 "lock-stock-v2/internal/domain/game/repository"
+	"lock-stock-v2/internal/domain/game/service"
 	"lock-stock-v2/internal/domain/room/repository"
-	"lock-stock-v2/internal/domain/room/service"
+	service2 "lock-stock-v2/internal/domain/room/service"
 	repository3 "lock-stock-v2/internal/domain/room_user/repository"
 	"lock-stock-v2/internal/domain/room_user/service"
 	repository2 "lock-stock-v2/internal/domain/user/repository"
-	service2 "lock-stock-v2/internal/domain/user/service"
+	service3 "lock-stock-v2/internal/domain/user/service"
 	"lock-stock-v2/internal/infrastructure/postgres"
 	websocket2 "lock-stock-v2/internal/infrastructure/websocket"
 	"lock-stock-v2/internal/websocket"
@@ -38,9 +40,16 @@ func InitializeRouter() (http.Handler, error) {
 	roomRepository := ProvideRoomRepository(pool)
 	userRepository := ProvideUserRepository(pool)
 	roomUserService := services.NewRoomUserService(roomUserRepository)
-	startGameService := service.NewStartGameService(roomRepository, roomUserRepository)
+	gameRepository := ProvideGameRepository(pool)
+	playerRepository := ProvidePlayerRepository(pool)
+	roundRepository := ProvideRoundRepository(pool)
+	betRepository := ProvideBetRepository(pool)
+	createBetService := service.NewCreateBetService(betRepository)
+	createRoundService := service.NewCreateRoundService(roundRepository, createBetService)
+	createGameService := service.NewCreateGameService(roomUserRepository, gameRepository, playerRepository, createRoundService, manager)
+	startGameService := service2.NewStartGameService(roomRepository, roomUserRepository, createGameService)
 	roomHandler := ProvideRoomHandler(joinRoomService, roomRepository, userRepository, roomUserService, startGameService)
-	createUserService := service2.NewCreateUser(userRepository)
+	createUserService := service3.NewCreateUser(userRepository)
 	userHandler := ProvideUserHandler(createUserService)
 	webSocketHandler := ProvideWebSocketHandler(manager)
 	handler := router.NewRouter(roomHandler, userHandler, webSocketHandler, userRepository)
@@ -70,12 +79,12 @@ func ProvideRoomHandler(
 	roomRepository repository.RoomRepository,
 	userRepository repository2.UserRepository,
 	roomUserService *services.RoomUserService,
-	startGameService *service.StartGameService,
+	startGameService *service2.StartGameService,
 ) *room.RoomHandler {
 	return room.NewRoomHandler(joinRoomService, roomRepository, userRepository, roomUserService, startGameService)
 }
 
-func ProvideUserHandler(createUserService *service2.CreateUserService) *user.UserHandler {
+func ProvideUserHandler(createUserService *service3.CreateUserService) *user.UserHandler {
 	return user.NewUserHandler(createUserService)
 }
 
@@ -93,4 +102,20 @@ func ProvideUserRepository(db *pgxpool.Pool) repository2.UserRepository {
 
 func ProvideRoomUserRepository(db *pgxpool.Pool) repository3.RoomUserRepository {
 	return postgres.NewPostgresRoomUserRepository(db)
+}
+
+func ProvideGameRepository(db *pgxpool.Pool) repository4.GameRepository {
+	return postgres.NewPostgresGameRepository(db)
+}
+
+func ProvidePlayerRepository(db *pgxpool.Pool) repository4.PlayerRepository {
+	return postgres.NewPostgresPlayerRepository(db)
+}
+
+func ProvideRoundRepository(db *pgxpool.Pool) repository4.RoundRepository {
+	return postgres.NewPostgresRoundRepository(db)
+}
+
+func ProvideBetRepository(db *pgxpool.Pool) repository4.BetRepository {
+	return postgres.NewPostgresBetRepository(db)
 }

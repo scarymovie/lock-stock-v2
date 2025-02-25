@@ -1,6 +1,6 @@
 ###
 POST http://localhost:8080/room/join/test
 Content-Type: application/json
-Authorization: user-582d63cc-1fab-46b2-903e-792257c3c148
+Authorization: user-3e1a90d1-38a4-4c8c-b476-cfb94d4be7b1
 
 ###

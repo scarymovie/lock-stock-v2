@@ -1,11 +1,26 @@
 package model
 
+import "github.com/google/uuid"
+
 type Round struct {
+	uid      string
 	number   *uint
 	question *Question
 	buyIn    uint
 	pot      uint
 	game     *LockStockGame
+}
+
+func NewRound(number *uint, question *Question, buyIn uint, pot uint, game *LockStockGame) *Round {
+	return &Round{uid: "round-" + uuid.New().String(), number: number, question: question, buyIn: buyIn, pot: pot, game: game}
+}
+
+func (r *Round) Uid() string {
+	return r.uid
+}
+
+func (r *Round) SetUid(uid string) {
+	r.uid = uid
 }
 
 func (r *Round) Number() *uint {
@@ -46,8 +61,4 @@ func (r *Round) Game() *LockStockGame {
 
 func (r *Round) SetGame(game *LockStockGame) {
 	r.game = game
-}
-
-func NewRound(number *uint, question *Question, buyIn uint, game *LockStockGame) *Round {
-	return &Round{number: number, question: question, buyIn: buyIn, game: game}
 }

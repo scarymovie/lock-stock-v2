@@ -21,18 +21,24 @@ func NewPostgresPlayerRepository(db *pgxpool.Pool) *PlayerRepository {
 
 func (repo *PlayerRepository) Save(player *model.Player) error {
 	query := `
-		INSERT INTO players (balance, status, room_user_id, game_id)
-		VALUES ($1, $2, (SELECT id FROM room_users WHERE user_id = (SELECT id FROM users WHERE uid = $3) AND room_id = (SELECT id FROM rooms WHERE uid = $4)), (SELECT id FROM lock_stock_games WHERE uid = $5))
+		INSERT INTO players (uid, balance, status, user_id, game_id)
+		VALUES (
+		        $1,
+		        $2,
+		        $3, 
+		        (SELECT id FROM users WHERE uid = $4), 
+		        (SELECT id FROM lock_stock_games WHERE uid = $5)
+		)
 	`
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	_, err := repo.db.Exec(ctx, query,
+		player.Uid(),
 		player.Balance(),
 		player.Status(),
-		player.RoomUser().User().Uid(),
-		player.Game().Uid(),
+		player.User().Uid(),
 		player.Game().Uid(),
 	)
 

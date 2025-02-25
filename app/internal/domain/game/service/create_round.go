@@ -6,13 +6,14 @@ import (
 )
 
 type CreateRoundService struct {
-	roundRepo repository.RoundRepository
+	roundRepo        repository.RoundRepository
+	createBetService *CreateBetService
 }
 
 const roundCoefficient = 500
 
-func NewCreateRoundService() *CreateRoundService {
-	return &CreateRoundService{}
+func NewCreateRoundService(roundRepo repository.RoundRepository, createBetService *CreateBetService) *CreateRoundService {
+	return &CreateRoundService{roundRepo: roundRepo, createBetService: createBetService}
 }
 
 func (s *CreateRoundService) CreateRound(game *model.LockStockGame, players []*model.Player) {
@@ -28,17 +29,17 @@ func (s *CreateRoundService) CreateRound(game *model.LockStockGame, players []*m
 	}
 	question := model.NewQuestion("Сколько голов забила Сборная России на чемпионате мира по футболу 2018 года?", hints)
 
-	round := model.NewRound(&roundNumber, question, uint(500), game)
+	round := model.NewRound(&roundNumber, question, uint(500), 0, game)
 
 	roundPrice := roundCoefficient * roundNumber
 
 	for i, player := range players {
 		if roundPrice > player.Balance() {
-			model.NewBet(player, player.Balance(), round, uint(i+1))
+			s.createBetService.CreateBet(player, player.Balance(), round, uint(i+1))
 			player.SetBalance(0)
 			continue
 		}
-		model.NewBet(player, roundPrice, round, uint(i+1))
+		s.createBetService.CreateBet(player, roundPrice, round, uint(i+1))
 		player.SetBalance(player.Balance() - roundPrice)
 	}
 

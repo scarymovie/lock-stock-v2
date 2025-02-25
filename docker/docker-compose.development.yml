@@ -13,8 +13,9 @@ services:
         condition: service_healthy
     networks:
       - internal
+      - public
     ports:
-      - "${APP_LISTEN_PORT:-8080}:${APP_LISTEN_PORT:-8080}"
+      - "8080:${APP_LISTEN_PORT:-8080}"
 
   postgres:
     image: postgres:17-alpine
@@ -47,7 +48,7 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    command:  ["tail", "-f", "/dev/null"]
+    entrypoint:  ["tail", "-f", "/dev/null"]
     volumes:
       - ../app/migrations:/migrations
     networks:

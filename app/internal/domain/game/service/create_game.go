@@ -6,8 +6,8 @@ import (
 	"lock-stock-v2/internal/domain/game/model"
 	"lock-stock-v2/internal/domain/game/repository"
 	roomModel "lock-stock-v2/internal/domain/room/model"
-	roomUserModel "lock-stock-v2/internal/domain/room_user/model"
 	roomUserRepository "lock-stock-v2/internal/domain/room_user/repository"
+	userModel "lock-stock-v2/internal/domain/user/model"
 	"lock-stock-v2/internal/websocket"
 	"log"
 )
@@ -16,12 +16,17 @@ type CreateGameService struct {
 	roomUserRepo     roomUserRepository.RoomUserRepository
 	gameRepository   repository.GameRepository
 	playerRepository repository.PlayerRepository
-	roundService     CreateRoundService
+	roundService     *CreateRoundService
 	webSocket        websocket.Manager
 }
 
-func NewCreateGameService(roomUserRepo roomUserRepository.RoomUserRepository, gameRepository repository.GameRepository, playerRepository repository.PlayerRepository, roundService CreateRoundService, webSocket websocket.Manager) *CreateGameService {
-	return &CreateGameService{roomUserRepo: roomUserRepo, gameRepository: gameRepository, playerRepository: playerRepository, roundService: roundService, webSocket: webSocket}
+func NewCreateGameService(roomUserRepo roomUserRepository.RoomUserRepository, gameRepository repository.GameRepository, playerRepository repository.PlayerRepository, roundService *CreateRoundService, webSocket websocket.Manager) *CreateGameService {
+	return &CreateGameService{
+		roomUserRepo:     roomUserRepo,
+		gameRepository:   gameRepository,
+		playerRepository: playerRepository,
+		roundService:     roundService,
+		webSocket:        webSocket}
 }
 
 func (cgs *CreateGameService) CreateGame(room *roomModel.Room) (*model.LockStockGame, error) {
@@ -39,7 +44,12 @@ func (cgs *CreateGameService) CreateGame(room *roomModel.Room) (*model.LockStock
 		return nil, err
 	}
 
-	players, playersData, err := cgs.createPlayers(roomUsers, game)
+	var playersFromRoomUsers []*userModel.User
+	for _, roomUser := range roomUsers {
+		playersFromRoomUsers = append(playersFromRoomUsers, roomUser.User())
+	}
+
+	players, playersData, err := cgs.createPlayers(playersFromRoomUsers, game)
 	if err != nil {
 		log.Println("Error creating players:", err)
 		return nil, err
@@ -55,12 +65,12 @@ func (cgs *CreateGameService) CreateGame(room *roomModel.Room) (*model.LockStock
 	return game, nil
 }
 
-func (cgs *CreateGameService) createPlayers(roomUsers []*roomUserModel.RoomUser, game *model.LockStockGame) ([]*model.Player, []map[string]interface{}, error) {
+func (cgs *CreateGameService) createPlayers(users []*userModel.User, game *model.LockStockGame) ([]*model.Player, []map[string]interface{}, error) {
 	var players []*model.Player
 	var playersData []map[string]interface{}
 
-	for _, roomUser := range roomUsers {
-		player := model.NewPlayer(roomUser, 25000, model.StatusPlaying, game)
+	for _, user := range users {
+		player := model.NewPlayer(user, 25000, model.StatusPlaying, game)
 		err := cgs.playerRepository.Save(player)
 		if err != nil {
 			log.Println("Error saving player:", err)
@@ -68,7 +78,7 @@ func (cgs *CreateGameService) createPlayers(roomUsers []*roomUserModel.RoomUser,
 		}
 		players = append(players, player)
 		playersData = append(playersData, map[string]interface{}{
-			"userId":  roomUser.User().Uid(),
+			"userId":  player.User().Uid(),
 			"balance": player.Balance(),
 		})
 	}

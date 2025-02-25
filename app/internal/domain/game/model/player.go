@@ -1,7 +1,8 @@
 package model
 
 import (
-	"lock-stock-v2/internal/domain/room_user/model"
+	"github.com/google/uuid"
+	userModel "lock-stock-v2/internal/domain/user/model"
 )
 
 type PlayerStatus string
@@ -12,22 +13,31 @@ const (
 )
 
 type Player struct {
-	user    *model.RoomUser
+	uid     string
+	user    *userModel.User
 	balance uint
 	status  PlayerStatus
 	game    *LockStockGame
 }
 
-func NewPlayer(user *model.RoomUser, balance uint, status PlayerStatus, game *LockStockGame) *Player {
-	return &Player{user: user, balance: balance, status: status, game: game}
-}
-
-func (p *Player) RoomUser() *model.RoomUser {
+func (p *Player) User() *userModel.User {
 	return p.user
 }
 
-func (p *Player) SetUser(user *model.RoomUser) {
+func (p *Player) SetUser(user *userModel.User) {
 	p.user = user
+}
+
+func NewPlayer(user *userModel.User, balance uint, status PlayerStatus, game *LockStockGame) *Player {
+	return &Player{uid: "player-" + uuid.New().String(), user: user, balance: balance, status: status, game: game}
+}
+
+func (p *Player) Uid() string {
+	return p.uid
+}
+
+func (p *Player) SetUid(uid string) {
+	p.uid = uid
 }
 
 func (p *Player) Status() PlayerStatus {

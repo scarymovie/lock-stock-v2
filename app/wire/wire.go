@@ -11,6 +11,7 @@ import (
 	"lock-stock-v2/handlers/http/user"
 	"lock-stock-v2/handlers/http/ws"
 	gameRepository "lock-stock-v2/internal/domain/game/repository"
+	gameService "lock-stock-v2/internal/domain/game/service"
 	roomRepository "lock-stock-v2/internal/domain/room/repository"
 	roomService "lock-stock-v2/internal/domain/room/service"
 	roomUserRepository "lock-stock-v2/internal/domain/room_user/repository"
@@ -66,12 +67,24 @@ func ProvideUserRepository(db *pgxpool.Pool) userRepository.UserRepository {
 	return internalPostgresRepository.NewPostgresUserRepository(db)
 }
 
+func ProvideRoomUserRepository(db *pgxpool.Pool) roomUserRepository.RoomUserRepository {
+	return internalPostgresRepository.NewPostgresRoomUserRepository(db)
+}
+
 func ProvideGameRepository(db *pgxpool.Pool) gameRepository.GameRepository {
 	return internalPostgresRepository.NewPostgresGameRepository(db)
 }
 
-func ProvideRoomUserRepository(db *pgxpool.Pool) roomUserRepository.RoomUserRepository {
-	return internalPostgresRepository.NewPostgresRoomUserRepository(db)
+func ProvidePlayerRepository(db *pgxpool.Pool) gameRepository.PlayerRepository {
+	return internalPostgresRepository.NewPostgresPlayerRepository(db)
+}
+
+func ProvideRoundRepository(db *pgxpool.Pool) gameRepository.RoundRepository {
+	return internalPostgresRepository.NewPostgresRoundRepository(db)
+}
+
+func ProvideBetRepository(db *pgxpool.Pool) gameRepository.BetRepository {
+	return internalPostgresRepository.NewPostgresBetRepository(db)
 }
 
 func InitializeRouter() (http.Handler, error) {
@@ -79,13 +92,23 @@ func InitializeRouter() (http.Handler, error) {
 		// Подключение к PostgreSQL
 		ProvidePostgresPool,
 
+		// Repositories
+		ProvideRoomRepository,
+		ProvideUserRepository,
+		ProvideRoomUserRepository,
+		ProvideGameRepository,
+		ProvidePlayerRepository,
+		ProvideRoundRepository,
+		ProvideBetRepository,
+
 		// Services
 		roomUserService.NewJoinRoomService,
 		roomUserService.NewRoomUserService,
 		userService.NewCreateUser,
 		roomService.NewStartGameService,
-		//gameService.NewCreateGameService,
-		//gameService.NewCreateRoundService,
+		gameService.NewCreateGameService,
+		gameService.NewCreateBetService,
+		gameService.NewCreateRoundService,
 
 		// Handlers
 		ProvideWebSocketHandler,
@@ -94,12 +117,6 @@ func InitializeRouter() (http.Handler, error) {
 
 		// WebSocket
 		ProvideWebSocketManager,
-
-		// Repositories
-		ProvideRoomRepository,
-		ProvideUserRepository,
-		ProvideRoomUserRepository,
-		//ProvideGameRepository,
 
 		// Роутер
 		router.NewRouter,

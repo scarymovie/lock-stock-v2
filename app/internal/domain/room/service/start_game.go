@@ -12,7 +12,7 @@ import (
 type StartGameService struct {
 	roomRepository     repository.RoomRepository
 	roomUserRepository roomUserRepository.RoomUserRepository
-	createGame         gameService.CreateGameService
+	createGame         *gameService.CreateGameService
 }
 
 type StartGameRequest struct {
@@ -20,11 +20,8 @@ type StartGameRequest struct {
 	User *userModel.User
 }
 
-func NewStartGameService(
-	roomRepository repository.RoomRepository,
-	roomUserRepository roomUserRepository.RoomUserRepository,
-) *StartGameService {
-	return &StartGameService{roomRepository: roomRepository, roomUserRepository: roomUserRepository}
+func NewStartGameService(roomRepository repository.RoomRepository, roomUserRepository roomUserRepository.RoomUserRepository, createGame *gameService.CreateGameService) *StartGameService {
+	return &StartGameService{roomRepository: roomRepository, roomUserRepository: roomUserRepository, createGame: createGame}
 }
 
 func (uc *StartGameService) StartGame(req StartGameRequest) error {

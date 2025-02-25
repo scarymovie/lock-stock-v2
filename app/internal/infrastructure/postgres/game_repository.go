@@ -21,8 +21,8 @@ func NewPostgresGameRepository(db *pgxpool.Pool) *LockStockGameRepository {
 
 func (repo *LockStockGameRepository) Save(game *model.LockStockGame) error {
 	query := `
-		INSERT INTO lock_stock_games (uid, action_duration, question_duration, room_id, created_at, updated_at)
-		VALUES ($1, $2, $3, (SELECT id FROM rooms WHERE uid = $4), $5, $6)
+		INSERT INTO lock_stock_games (uid, action_duration, question_duration, room_id, created_at)
+		VALUES ($1, $2, $3, (SELECT id FROM rooms WHERE uid = $4), $5)
 	`
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
