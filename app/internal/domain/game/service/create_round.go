@@ -30,6 +30,7 @@ func (s *CreateRoundService) CreateRound(game *model.LockStockGame, players []*m
 	question := model.NewQuestion("Сколько голов забила Сборная России на чемпионате мира по футболу 2018 года?", hints)
 
 	round := model.NewRound(&roundNumber, question, uint(500), 0, game)
+	s.roundRepo.Save(round)
 
 	roundPrice := roundCoefficient * roundNumber
 
@@ -42,6 +43,4 @@ func (s *CreateRoundService) CreateRound(game *model.LockStockGame, players []*m
 		s.createBetService.CreateBet(player, roundPrice, round, uint(i+1))
 		player.SetBalance(player.Balance() - roundPrice)
 	}
-
-	s.roundRepo.Save(round)
 }
