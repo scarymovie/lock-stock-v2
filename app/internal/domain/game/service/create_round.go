@@ -9,6 +9,8 @@ type CreateRoundService struct {
 	roundRepo repository.RoundRepository
 }
 
+const roundCoefficient = 500
+
 func NewCreateRoundService() *CreateRoundService {
 	return &CreateRoundService{}
 }
@@ -27,5 +29,16 @@ func (s *CreateRoundService) CreateRound(game *model.LockStockGame, players []*m
 	question := model.NewQuestion("Сколько голов забила Сборная России на чемпионате мира по футболу 2018 года?", hints)
 
 	round := model.NewRound(&roundNumber, question, uint(500), game)
+
+	roundPrice := roundCoefficient * roundNumber
+
+	for _, player := range players {
+		if player.Balance() < roundPrice {
+			model.NewBet(player, player.Balance(), round)
+			continue
+		}
+		model.NewBet(player, roundPrice, round)
+	}
+
 	s.roundRepo.Save(round)
 }

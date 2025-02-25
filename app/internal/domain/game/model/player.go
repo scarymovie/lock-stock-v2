@@ -18,6 +18,10 @@ type Player struct {
 	game    *LockStockGame
 }
 
+func (p Player) Balance() uint {
+	return p.balance
+}
+
 func NewPlayer(user *model.RoomUser, balance uint, status PlayerStatus, game *LockStockGame) *Player {
 	return &Player{user: user, balance: balance, status: status, game: game}
 }

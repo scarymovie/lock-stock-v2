@@ -32,7 +32,7 @@ func (cgs *CreateGameService) CreateGame(room *roomModel.Room) *model.LockStockG
 
 	var players []*model.Player
 	for _, roomUser := range roomUsers {
-		player := model.NewPlayer(roomUser, 5000, model.StatusPlaying, game)
+		player := model.NewPlayer(roomUser, 25000, model.StatusPlaying, game)
 		cgs.playerRepository.Save(player)
 		players = append(players, player)
 	}

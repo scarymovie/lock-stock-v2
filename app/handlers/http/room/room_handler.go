@@ -2,6 +2,7 @@ package room
 
 import (
 	"encoding/json"
+	"errors"
 	"lock-stock-v2/handlers/http/helpers"
 	"lock-stock-v2/internal/domain/room/repository"
 	"lock-stock-v2/internal/domain/room/service"
@@ -38,7 +39,7 @@ func NewRoomHandler(
 func (h *RoomHandler) GetRooms(w http.ResponseWriter, r *http.Request) {
 	rooms, err := h.roomRepository.GetPending()
 	if err != nil {
-		http.Error(w, "Failed to get rooms: "+err.Error(), http.StatusInternalServerError)
+		respondWithError(w, "Failed to get rooms", err, http.StatusInternalServerError)
 		return
 	}
 
@@ -50,27 +51,34 @@ func (h *RoomHandler) GetRooms(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-
-	if err := json.NewEncoder(w).Encode(responseData); err != nil {
-		log.Printf("Ошибка при кодировании ответа: %v\n", err)
-		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
-	}
+	respondWithJSON(w, http.StatusOK, responseData)
 }
 
 func (h *RoomHandler) StartGame(w http.ResponseWriter, r *http.Request, roomId string) {
 	room, err := helpers.GetRoomById(h.roomRepository, roomId)
 	if err != nil {
-		http.Error(w, err.Error(), err.(*helpers.RoomNotFoundError).Code)
+		var roomErr *helpers.RoomNotFoundError
+		ok := errors.As(err, &roomErr)
+		if ok {
+			respondWithError(w, err.Error(), nil, roomErr.Code)
+		} else {
+			respondWithError(w, "Error getting room", err, http.StatusInternalServerError)
+		}
 		return
 	}
 
 	user, err := helpers.GetUserFromRequest(r)
 	if err != nil {
-		http.Error(w, err.Error(), err.(*helpers.UserNotFoundError).Code)
+		var userErr *helpers.UserNotFoundError
+		ok := errors.As(err, &userErr)
+		if ok {
+			respondWithError(w, err.Error(), nil, userErr.Code)
+		} else {
+			respondWithError(w, "Error getting user", err, http.StatusInternalServerError)
+		}
 		return
 	}
+
 	roomUsers, err := h.roomUserService.GetUsersByRoom(room)
 	if err != nil {
 		http.Error(w, "Failed to get users in room: "+err.Error(), http.StatusInternalServerError)
@@ -90,42 +98,50 @@ func (h *RoomHandler) StartGame(w http.ResponseWriter, r *http.Request, roomId s
 	}
 
 	if err := h.startGameService.StartGame(req); err != nil {
-		http.Error(w, "Failed to start game: "+err.Error(), http.StatusInternalServerError)
+		respondWithError(w, "Failed to start game", err, http.StatusInternalServerError)
 		return
 	}
 
-	// start first round
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{"message": "Game started"})
+	respondWithJSON(w, http.StatusOK, map[string]string{"message": "Game started"})
 }
 
 func (h *RoomHandler) JoinRoom(w http.ResponseWriter, r *http.Request, roomId string, params JoinRoomParams) {
 	room, err := helpers.GetRoomById(h.roomRepository, roomId)
 	if err != nil {
-		http.Error(w, err.Error(), err.(*helpers.RoomNotFoundError).Code)
+		var roomErr *helpers.RoomNotFoundError
+		ok := errors.As(err, &roomErr)
+		if ok {
+			respondWithError(w, err.Error(), nil, roomErr.Code)
+		} else {
+			respondWithError(w, "Error getting room", err, http.StatusInternalServerError)
+		}
 		return
 	}
 
 	user, err := helpers.GetUserFromString(params.Authorization, h.userRepository)
 	if err != nil {
-		http.Error(w, err.Error(), err.(*helpers.UserNotFoundError).Code)
+		userErr, ok := err.(*helpers.UserNotFoundError)
+		if ok {
+			respondWithError(w, err.Error(), nil, userErr.Code)
+		} else {
+			respondWithError(w, "Error getting user", err, http.StatusInternalServerError)
+		}
 		return
 	}
+
 	domainReq := services.JoinRoomRequest{User: user, Room: room}
 	if err := h.joinRoomService.JoinRoom(domainReq); err != nil {
-		http.Error(w, "Failed to join room: "+err.Error(), http.StatusInternalServerError)
+		respondWithError(w, "Failed to join room", err, http.StatusInternalServerError)
 		return
 	}
 
 	roomUsers, err := h.roomUserService.GetUsersByRoom(room)
 	if err != nil {
-		http.Error(w, "Failed to get users in room", http.StatusInternalServerError)
+		respondWithError(w, "Failed to get users in room", err, http.StatusInternalServerError)
 		return
 	}
 
-	var response []JoinRoomResponse
+	response := make([]JoinRoomResponse, 0, len(roomUsers))
 	for _, ru := range roomUsers {
 		response = append(response, JoinRoomResponse{
 			RoomId:   ru.Room().Uid(),
@@ -134,6 +150,26 @@ func (h *RoomHandler) JoinRoom(w http.ResponseWriter, r *http.Request, roomId st
 		})
 	}
 
+	respondWithJSON(w, http.StatusOK, response)
+}
+
+func respondWithError(w http.ResponseWriter, message string, err error, statusCode int) {
+	errorMessage := message
+	if err != nil {
+		errorMessage += ": " + err.Error()
+	}
+
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	w.WriteHeader(statusCode)
+	json.NewEncoder(w).Encode(map[string]string{"error": errorMessage})
+}
+
+func respondWithJSON(w http.ResponseWriter, statusCode int, data interface{}) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCode)
+
+	if err := json.NewEncoder(w).Encode(data); err != nil {
+		log.Printf("Ошибка при кодировании ответа: %v\n", err)
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+	}
 }
