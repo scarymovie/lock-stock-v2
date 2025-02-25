@@ -23,7 +23,7 @@ func UserAuthMiddleware(userRepository repository.UserRepository) func(http.Hand
 
 			user, err := userRepository.FindById(userId)
 			if err != nil {
-				http.Error(w, "User not found", http.StatusUnauthorized)
+				http.Error(w, "RoomUser not found", http.StatusUnauthorized)
 				return
 			}
 

@@ -38,7 +38,7 @@ func InitializeRouter() (http.Handler, error) {
 	roomRepository := ProvideRoomRepository(pool)
 	userRepository := ProvideUserRepository(pool)
 	roomUserService := services.NewRoomUserService(roomUserRepository)
-	startGameService := service.NewStartGameService(roomRepository, roomUserRepository, manager)
+	startGameService := service.NewStartGameService(roomRepository, roomUserRepository)
 	roomHandler := ProvideRoomHandler(joinRoomService, roomRepository, userRepository, roomUserService, startGameService)
 	createUserService := service2.NewCreateUser(userRepository)
 	userHandler := ProvideUserHandler(createUserService)

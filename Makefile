@@ -10,7 +10,7 @@ init: permissions up migrate-up
 
 .PHONY: permissions
 permissions:
-	sudo chown -R $(whoami):$(whoami) app/migrations
+	sudo chown -R $(shell whoami):$(shell id -g) app/migrations
 
 # Запуск контейнеров
 .PHONY: up

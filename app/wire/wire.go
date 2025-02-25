@@ -10,7 +10,7 @@ import (
 	"lock-stock-v2/handlers/http/room"
 	"lock-stock-v2/handlers/http/user"
 	"lock-stock-v2/handlers/http/ws"
-	gameService "lock-stock-v2/internal/domain/game/service"
+	gameRepository "lock-stock-v2/internal/domain/game/repository"
 	roomRepository "lock-stock-v2/internal/domain/room/repository"
 	roomService "lock-stock-v2/internal/domain/room/service"
 	roomUserRepository "lock-stock-v2/internal/domain/room_user/repository"
@@ -66,6 +66,10 @@ func ProvideUserRepository(db *pgxpool.Pool) userRepository.UserRepository {
 	return internalPostgresRepository.NewPostgresUserRepository(db)
 }
 
+func ProvideGameRepository(db *pgxpool.Pool) gameRepository.GameRepository {
+	return internalPostgresRepository.NewPostgresGameRepository(db)
+}
+
 func ProvideRoomUserRepository(db *pgxpool.Pool) roomUserRepository.RoomUserRepository {
 	return internalPostgresRepository.NewPostgresRoomUserRepository(db)
 }
@@ -80,8 +84,8 @@ func InitializeRouter() (http.Handler, error) {
 		roomUserService.NewRoomUserService,
 		userService.NewCreateUser,
 		roomService.NewStartGameService,
-		gameService.NewCreateGameService,
-		gameService.NewCreateRoundService,
+		//gameService.NewCreateGameService,
+		//gameService.NewCreateRoundService,
 
 		// Handlers
 		ProvideWebSocketHandler,
@@ -95,6 +99,7 @@ func InitializeRouter() (http.Handler, error) {
 		ProvideRoomRepository,
 		ProvideUserRepository,
 		ProvideRoomUserRepository,
+		//ProvideGameRepository,
 
 		// Роутер
 		router.NewRouter,

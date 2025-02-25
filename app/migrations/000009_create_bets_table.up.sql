@@ -1,0 +1,10 @@
+-- Create the bets table
+CREATE TABLE IF NOT EXISTS bets(
+    id SERIAL PRIMARY KEY,
+    price INTEGER NOT NULL,
+    player_id INTEGER NOT NULL,
+    round_id INTEGER NOT NULL,
+    position INTEGER NOT NULL,
+    FOREIGN KEY (player_id) REFERENCES players(id) ON UPDATE CASCADE ON DELETE CASCADE,
+    FOREIGN KEY (round_id) REFERENCES rounds(id) ON UPDATE CASCADE ON DELETE CASCADE
+);

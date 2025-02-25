@@ -88,7 +88,7 @@ func (h *RoomHandler) StartGame(w http.ResponseWriter, r *http.Request, roomId s
 	isUserInRoom := h.roomUserService.IsUserInRoom(roomUsers, user)
 
 	if !isUserInRoom {
-		http.Error(w, "User is not in the room", http.StatusForbidden)
+		http.Error(w, "RoomUser is not in the room", http.StatusForbidden)
 		return
 	}
 
