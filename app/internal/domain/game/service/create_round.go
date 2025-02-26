@@ -61,7 +61,6 @@ func (s *CreateRoundService) CreateRound(game *model.LockStockGame, players []*m
 		pot += bet.Amount()
 		round.SetPot(uint(pot))
 	}
-	log.Println("updating round")
 	s.roundRepo.Save(round)
 
 	message := map[string]interface{}{
