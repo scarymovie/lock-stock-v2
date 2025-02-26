@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"lock-stock-v2/internal/domain/game/model"
@@ -20,6 +21,17 @@ func NewPostgresBetRepository(db *pgxpool.Pool) *BetRepository {
 }
 
 func (repo *BetRepository) Save(bet *model.Bet) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	var roundID int
+	err := repo.db.QueryRow(ctx, "SELECT id FROM rounds WHERE uid = $1", bet.Round().Uid()).Scan(&roundID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return fmt.Errorf("round not found for uid: %s", bet.Round().Uid())
+		}
+		return fmt.Errorf("failed to find round_id: %w", err)
+	}
 
 	query := `
         INSERT INTO bets (
@@ -30,19 +42,16 @@ func (repo *BetRepository) Save(bet *model.Bet) error {
         VALUES (
 					$1,
 					(SELECT id FROM players WHERE uid = $2),
-					(SELECT id FROM rounds WHERE uid = $3), 
+					$3, 
 					$4
                 )
     `
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	_, err := repo.db.Exec(ctx, query,
+	_, err = repo.db.Exec(ctx, query,
 		bet.Amount(),
 		bet.Player().Uid(),
-		bet.Round().Uid(),
-		bet.Number(),
+		roundID,
+		int(bet.Number()),
 	)
 
 	if err != nil {
