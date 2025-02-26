@@ -14,7 +14,7 @@ func NewCreateBetService(betRepository repository.BetRepository) *CreateBetServi
 	return &CreateBetService{betRepository: betRepository}
 }
 
-func (cbs CreateBetService) CreateBet(player *model.Player, amount uint, round *model.Round, position uint) (*model.Bet, error) {
+func (cbs CreateBetService) CreateBet(player *model.Player, amount int, round *model.Round, position uint) (*model.Bet, error) {
 	bet := model.NewBet(player, amount, round, position)
 	err := cbs.betRepository.Save(bet)
 	if err != nil {

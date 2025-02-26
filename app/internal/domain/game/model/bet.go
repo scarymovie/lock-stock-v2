@@ -2,7 +2,7 @@ package model
 
 type Bet struct {
 	player *Player
-	amount uint
+	amount int
 	round  *Round
 	number uint
 }
@@ -15,11 +15,11 @@ func (b *Bet) SetPlayer(player *Player) {
 	b.player = player
 }
 
-func (b *Bet) Amount() uint {
+func (b *Bet) Amount() int {
 	return b.amount
 }
 
-func (b *Bet) SetAmount(amount uint) {
+func (b *Bet) SetAmount(amount int) {
 	b.amount = amount
 }
 
@@ -39,6 +39,6 @@ func (b *Bet) SetNumber(number uint) {
 	b.number = number
 }
 
-func NewBet(player *Player, amount uint, round *Round, number uint) *Bet {
+func NewBet(player *Player, amount int, round *Round, number uint) *Bet {
 	return &Bet{player: player, amount: amount, round: round, number: number}
 }

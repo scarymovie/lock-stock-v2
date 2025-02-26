@@ -45,7 +45,7 @@ func InitializeRouter() (http.Handler, error) {
 	roundRepository := ProvideRoundRepository(pool)
 	betRepository := ProvideBetRepository(pool)
 	createBetService := service.NewCreateBetService(betRepository)
-	createRoundService := service.NewCreateRoundService(roundRepository, createBetService)
+	createRoundService := service.NewCreateRoundService(roundRepository, createBetService, manager)
 	createGameService := service.NewCreateGameService(roomUserRepository, gameRepository, playerRepository, createRoundService, manager)
 	startGameService := service2.NewStartGameService(roomRepository, roomUserRepository, createGameService)
 	roomHandler := ProvideRoomHandler(joinRoomService, roomRepository, userRepository, roomUserService, startGameService)

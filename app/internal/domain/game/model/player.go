@@ -15,7 +15,7 @@ const (
 type Player struct {
 	uid     string
 	user    *userModel.User
-	balance uint
+	balance int
 	status  PlayerStatus
 	game    *LockStockGame
 }
@@ -28,7 +28,7 @@ func (p *Player) SetUser(user *userModel.User) {
 	p.user = user
 }
 
-func NewPlayer(user *userModel.User, balance uint, status PlayerStatus, game *LockStockGame) *Player {
+func NewPlayer(user *userModel.User, balance int, status PlayerStatus, game *LockStockGame) *Player {
 	return &Player{uid: "player-" + uuid.New().String(), user: user, balance: balance, status: status, game: game}
 }
 
@@ -56,10 +56,10 @@ func (p *Player) SetGame(game *LockStockGame) {
 	p.game = game
 }
 
-func (p *Player) SetBalance(balance uint) {
+func (p *Player) SetBalance(balance int) {
 	p.balance = balance
 }
 
-func (p *Player) Balance() uint {
+func (p *Player) Balance() int {
 	return p.balance
 }

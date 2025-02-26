@@ -20,7 +20,12 @@ type CreateGameService struct {
 	webSocket        websocket.Manager
 }
 
-func NewCreateGameService(roomUserRepo roomUserRepository.RoomUserRepository, gameRepository repository.GameRepository, playerRepository repository.PlayerRepository, roundService *CreateRoundService, webSocket websocket.Manager) *CreateGameService {
+func NewCreateGameService(
+	roomUserRepo roomUserRepository.RoomUserRepository,
+	gameRepository repository.GameRepository,
+	playerRepository repository.PlayerRepository,
+	roundService *CreateRoundService,
+	webSocket websocket.Manager) *CreateGameService {
 	return &CreateGameService{
 		roomUserRepo:     roomUserRepo,
 		gameRepository:   gameRepository,
