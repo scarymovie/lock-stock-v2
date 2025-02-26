@@ -43,6 +43,7 @@ func (s *CreateRoundService) CreateRound(game *model.LockStockGame, players []*m
 
 	roundPrice := roundCoefficient * int(roundNumber)
 
+	var bets []*model.Bet
 	for i, player := range players {
 		newBalance := 0
 		betValue := player.Balance()
@@ -50,9 +51,18 @@ func (s *CreateRoundService) CreateRound(game *model.LockStockGame, players []*m
 			newBalance = player.Balance() - roundPrice
 			betValue = roundPrice
 		}
-		s.createBetService.CreateBet(player, betValue, round, uint(i+1))
+		bet, _ := s.createBetService.CreateBet(player, betValue, round, uint(i+1))
+		bets = append(bets, bet)
 		player.SetBalance(newBalance)
 	}
+
+	pot := 0
+	for _, bet := range bets {
+		pot += bet.Amount()
+		round.SetPot(uint(pot))
+	}
+	log.Println("updating round")
+	s.roundRepo.Save(round)
 
 	message := map[string]interface{}{
 		"event":       "round_started",

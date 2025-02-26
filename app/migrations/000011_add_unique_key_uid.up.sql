@@ -1,0 +1,1 @@
+ALTER TABLE rounds ADD CONSTRAINT rounds_uid_unique UNIQUE (uid);

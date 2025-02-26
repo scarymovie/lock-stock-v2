@@ -73,6 +73,11 @@ func (repo *RoundRepository) Save(round *model.Round) error {
 	query := `
         INSERT INTO rounds (uid, number, buy_in, pot, game_id)
         VALUES ($1, $2, $3, $4, (SELECT id FROM lock_stock_games WHERE uid = $5))
+        ON CONFLICT (uid) DO UPDATE 
+        SET number = EXCLUDED.number, 
+            buy_in = EXCLUDED.buy_in, 
+            pot = EXCLUDED.pot, 
+            game_id = EXCLUDED.game_id
     `
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
