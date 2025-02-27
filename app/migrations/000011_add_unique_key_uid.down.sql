@@ -1,0 +1,1 @@
+ALTER TABLE rounds DROP CONSTRAINT IF EXISTS rounds_uid_unique;

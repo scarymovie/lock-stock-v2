@@ -1,17 +1,18 @@
 package service
 
 import (
-	"encoding/json"
+	gameService "lock-stock-v2/internal/domain/game/service"
 	roomModel "lock-stock-v2/internal/domain/room/model"
 	"lock-stock-v2/internal/domain/room/repository"
+	roomUserRepository "lock-stock-v2/internal/domain/room_user/repository"
 	userModel "lock-stock-v2/internal/domain/user/model"
-	"lock-stock-v2/internal/websocket"
 	"log"
 )
 
 type StartGameService struct {
-	roomRepository repository.RoomRepository
-	webSocket      websocket.Manager
+	roomRepository     repository.RoomRepository
+	roomUserRepository roomUserRepository.RoomUserRepository
+	createGame         *gameService.CreateGameService
 }
 
 type StartGameRequest struct {
@@ -19,11 +20,8 @@ type StartGameRequest struct {
 	User *userModel.User
 }
 
-func NewStartGameService(
-	roomRepository repository.RoomRepository,
-	webSocket websocket.Manager,
-) *StartGameService {
-	return &StartGameService{roomRepository: roomRepository, webSocket: webSocket}
+func NewStartGameService(roomRepository repository.RoomRepository, roomUserRepository roomUserRepository.RoomUserRepository, createGame *gameService.CreateGameService) *StartGameService {
+	return &StartGameService{roomRepository: roomRepository, roomUserRepository: roomUserRepository, createGame: createGame}
 }
 
 func (uc *StartGameService) StartGame(req StartGameRequest) error {
@@ -34,22 +32,6 @@ func (uc *StartGameService) StartGame(req StartGameRequest) error {
 		return err
 	}
 
-	message := map[string]string{
-		"event":            "game_started",
-		"roomUid":          req.Room.Uid(),
-		"questionDuration": "60",
-		"actionDuration":   "30",
-	}
-
-	jsonMessage, err := json.Marshal(message)
-	if err != nil {
-		log.Printf("Failed to marshal WebSocket message: %v\n", err)
-		return nil
-	}
-
-	log.Println(string(jsonMessage))
-
-	uc.webSocket.PublishToRoom(req.Room.Uid(), jsonMessage)
-
+	uc.createGame.CreateGame(req.Room)
 	return nil
 }

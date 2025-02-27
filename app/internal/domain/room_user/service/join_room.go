@@ -40,15 +40,11 @@ func (s JoinRoomService) JoinRoom(request JoinRoomRequest) error {
 
 	log.Printf("usecase Player %s joined room %s\n", request.User.Uid(), request.Room.Uid())
 
-	user := roomUser.User()
-	u := roomUser.User()
-	room := roomUser.Room()
 	message := map[string]string{
 		"event":    "user_joined",
-		"userId":   user.Uid(),
-		"userName": u.Name(),
-		"roomId":   room.Uid(),
-		"balance":  "5000",
+		"userId":   roomUser.User().Uid(),
+		"userName": roomUser.User().Name(),
+		"roomId":   roomUser.Room().Uid(),
 	}
 
 	jsonMessage, err := json.Marshal(message)
