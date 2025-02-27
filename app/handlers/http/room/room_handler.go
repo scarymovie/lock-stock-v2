@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"lock-stock-v2/handlers/http/helpers"
+	roomModel "lock-stock-v2/internal/domain/room/model"
 	"lock-stock-v2/internal/domain/room/repository"
 	"lock-stock-v2/internal/domain/room/service"
 	"lock-stock-v2/internal/domain/room_user/service"
@@ -56,6 +57,9 @@ func (h *RoomHandler) GetRooms(w http.ResponseWriter, r *http.Request) {
 
 func (h *RoomHandler) StartGame(w http.ResponseWriter, r *http.Request, roomId string) {
 	room, err := helpers.GetRoomById(h.roomRepository, roomId)
+	if room.Status() == roomModel.StatusStarted {
+		respondWithError(w, "Room already started", nil, http.StatusBadRequest)
+	}
 	if err != nil {
 		var roomErr *helpers.RoomNotFoundError
 		ok := errors.As(err, &roomErr)
@@ -120,7 +124,8 @@ func (h *RoomHandler) JoinRoom(w http.ResponseWriter, r *http.Request, roomId st
 
 	user, err := helpers.GetUserFromString(params.Authorization, h.userRepository)
 	if err != nil {
-		userErr, ok := err.(*helpers.UserNotFoundError)
+		var userErr *helpers.UserNotFoundError
+		ok := errors.As(err, &userErr)
 		if ok {
 			respondWithError(w, err.Error(), nil, userErr.Code)
 		} else {
