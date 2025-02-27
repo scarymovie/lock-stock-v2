@@ -2,6 +2,7 @@ package service
 
 import (
 	"encoding/json"
+	"github.com/google/uuid"
 	"lock-stock-v2/internal/domain/game/model"
 	"lock-stock-v2/internal/domain/game/repository"
 	"lock-stock-v2/internal/websocket"
@@ -31,14 +32,9 @@ func (s *CreateRoundService) CreateRound(game *model.LockStockGame, players []*m
 	if len(rounds) > 0 {
 		roundNumber = uint(len(rounds) + 1)
 	}
+	roomId := "round-" + uuid.New().String()
 
-	hints := []*model.Hint{
-		model.NewHint("Водолей является таким по счёту знаком Зодиака."),
-		model.NewHint("Именно этого числа в России отмечается день трезвости."),
-	}
-	question := model.NewQuestion("Сколько голов забила Сборная России на чемпионате мира по футболу 2018 года?", hints)
-
-	round := model.NewRound(&roundNumber, question, uint(500), 0, game)
+	round := model.NewRound(roomId, &roundNumber, uint(500), 0, game)
 	s.roundRepo.Save(round)
 
 	roundPrice := roundCoefficient * int(roundNumber)
@@ -65,7 +61,7 @@ func (s *CreateRoundService) CreateRound(game *model.LockStockGame, players []*m
 
 	body := map[string]interface{}{
 		"roundNumber": roundNumber,
-		"question":    NewQuestionMessage(question),
+		"question":    NewQuestionMessage(round.Question()),
 		"buyIn":       round.BuyIn(),
 		"pot":         round.Pot(),
 	}

@@ -1,7 +1,5 @@
 package model
 
-import "github.com/google/uuid"
-
 type Round struct {
 	uid      string
 	number   *uint
@@ -11,8 +9,13 @@ type Round struct {
 	game     *LockStockGame
 }
 
-func NewRound(number *uint, question *Question, buyIn uint, pot uint, game *LockStockGame) *Round {
-	return &Round{uid: "round-" + uuid.New().String(), number: number, question: question, buyIn: buyIn, pot: pot, game: game}
+func NewRound(uid string, number *uint, buyIn uint, pot uint, game *LockStockGame) *Round {
+	hints := []*Hint{
+		NewHint("Водолей является таким по счёту знаком Зодиака."),
+		NewHint("Именно этого числа в России отмечается день трезвости."),
+	}
+	question := NewQuestion("Сколько голов забила Сборная России на чемпионате мира по футболу 2018 года?", hints)
+	return &Round{uid: uid, number: number, question: question, buyIn: buyIn, pot: pot, game: game}
 }
 
 func (r *Round) Uid() string {

@@ -43,23 +43,25 @@ func (repo *RoundRepository) FindByGame(game *model.LockStockGame) ([]*model.Rou
 	var rounds []*model.Round
 	for rows.Next() {
 		var roundUid string
-		var roundNumber uint
-		var roundBuyIn uint
-		var gameID uint
-		var round model.Round
+		var number uint
+		var buyIn uint
+		var pot uint
+		var gameId uint
 
 		err := rows.Scan(
 			&roundUid,
-			&roundNumber,
-			&roundBuyIn,
-			&gameID,
+			&number,
+			&buyIn,
+			&pot,
+			&gameId,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan round row: %w", err)
 		}
+		round := model.NewRound(roundUid, &number, buyIn, pot, game)
 		round.SetGame(game)
 
-		rounds = append(rounds, &round)
+		rounds = append(rounds, round)
 	}
 
 	if err := rows.Err(); err != nil {
