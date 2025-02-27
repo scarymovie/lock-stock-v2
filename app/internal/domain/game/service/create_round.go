@@ -63,12 +63,16 @@ func (s *CreateRoundService) CreateRound(game *model.LockStockGame, players []*m
 	}
 	s.roundRepo.Save(round)
 
-	message := map[string]interface{}{
-		"event":       "round_started",
+	body := map[string]interface{}{
 		"roundNumber": roundNumber,
 		"question":    NewQuestionMessage(question),
 		"buyIn":       round.BuyIn(),
 		"pot":         round.Pot(),
+	}
+
+	message := map[string]interface{}{
+		"event": "round_started",
+		"body":  body,
 	}
 
 	jsonMessage, err := json.Marshal(message)

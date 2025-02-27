@@ -91,12 +91,15 @@ func (cgs *CreateGameService) createPlayers(users []*userModel.User, game *model
 }
 
 func (cgs *CreateGameService) publishGameStartedEvent(room *roomModel.Room, game *model.LockStockGame, playersData []map[string]interface{}) error {
-	message := map[string]interface{}{
-		"event":            "game_started",
+	body := map[string]interface{}{
 		"roomUid":          room.Uid(),
 		"questionDuration": game.QuestionDuration(),
 		"actionDuration":   game.ActionDuration(),
 		"players":          playersData,
+	}
+	message := map[string]interface{}{
+		"event": "game_started",
+		"body":  body,
 	}
 
 	jsonMessage, err := json.Marshal(message)

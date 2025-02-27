@@ -25,10 +25,13 @@ func (cbs CreateBetService) CreateBet(player *model.Player, amount int, round *m
 		return nil, err
 	}
 
-	message := map[string]interface{}{
-		"event":    "bet_created",
+	body := map[string]interface{}{
 		"playerId": player.Uid(),
 		"amount":   amount,
+	}
+	message := map[string]interface{}{
+		"event": "bet_created",
+		"body":  body,
 	}
 
 	jsonMessage, err := json.Marshal(message)
