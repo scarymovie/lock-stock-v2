@@ -30,7 +30,7 @@ func (cbs CreateBetService) CreateBet(player *model.Player, amount int, round *m
 		"amount":   amount,
 	}
 	message := map[string]interface{}{
-		"event": "bet_created",
+		"event": "new_bet",
 		"body":  body,
 	}
 

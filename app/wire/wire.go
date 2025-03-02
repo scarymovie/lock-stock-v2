@@ -47,8 +47,22 @@ func ProvideRoomHandler(
 	userRepository userRepository.UserRepository,
 	roomUserService *roomUserService.RoomUserService,
 	startGameService *roomService.StartGameService,
+	createBetService *gameService.CreateBetService,
+	playerRepository gameRepository.PlayerRepository,
+	roundRepository gameRepository.RoundRepository,
+	betRepository gameRepository.BetRepository,
 ) *room.RoomHandler {
-	return room.NewRoomHandler(joinRoomService, roomRepository, userRepository, roomUserService, startGameService)
+	return room.NewRoomHandler(
+		joinRoomService,
+		roomRepository,
+		userRepository,
+		roomUserService,
+		startGameService,
+		createBetService,
+		playerRepository,
+		roundRepository,
+		betRepository,
+	)
 }
 
 func ProvideUserHandler(createUserService *userService.CreateUserService) *user.UserHandler {

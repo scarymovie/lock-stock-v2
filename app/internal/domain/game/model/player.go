@@ -1,7 +1,6 @@
 package model
 
 import (
-	"github.com/google/uuid"
 	userModel "lock-stock-v2/internal/domain/user/model"
 )
 
@@ -20,16 +19,16 @@ type Player struct {
 	game    *LockStockGame
 }
 
+func NewPlayer(uid string, user *userModel.User, balance int, status PlayerStatus, game *LockStockGame) *Player {
+	return &Player{uid: uid, user: user, balance: balance, status: status, game: game}
+}
+
 func (p *Player) User() *userModel.User {
 	return p.user
 }
 
 func (p *Player) SetUser(user *userModel.User) {
 	p.user = user
-}
-
-func NewPlayer(user *userModel.User, balance int, status PlayerStatus, game *LockStockGame) *Player {
-	return &Player{uid: "player-" + uuid.New().String(), user: user, balance: balance, status: status, game: game}
 }
 
 func (p *Player) Uid() string {
