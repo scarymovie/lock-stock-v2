@@ -73,6 +73,7 @@ func (h *RoomHandler) StartGame(w http.ResponseWriter, r *http.Request, roomId s
 	room, err := helpers.GetRoomById(h.roomRepository, roomId)
 	if room.Status() == roomModel.StatusStarted {
 		respondWithError(w, "Room already started", nil, http.StatusBadRequest)
+		return
 	}
 	if err != nil {
 		var roomErr *helpers.RoomNotFoundError
@@ -189,17 +190,40 @@ func (h *RoomHandler) MakeBet(w http.ResponseWriter, r *http.Request, params Mak
 		respondWithError(w, "invalid request body", err, http.StatusBadRequest)
 		return
 	}
-	room, _ := h.roomRepository.FindById(nwkRawBet.RoomId)
-	player := h.playerRepository.FindByUserAndRoom(user, room)
-	round, _ := h.roundRepository.FindLastByGame(player.Game())
-	bets, _ := h.betRepository.FindByRound(round)
+	room, err := h.roomRepository.FindById(nwkRawBet.RoomId)
+	if err != nil {
+		log.Printf("error finding room by ID %s: %v", nwkRawBet.RoomId, err)
+		return
+	}
+
+	player, err := h.playerRepository.FindByUserAndRoom(user, room)
+	if err != nil {
+		log.Printf("error finding player for user %s in room %s: %v", user.Uid(), room.Uid(), err)
+		return
+	}
+
+	round, err := h.roundRepository.FindLastByGame(player.Game())
+	if err != nil {
+		log.Printf("error finding last round for game %s: %v", player.Game().Uid(), err)
+		return
+	}
+
+	bets, err := h.betRepository.FindByRound(round)
+	if err != nil {
+		log.Printf("error finding bets for round %s: %v", round.Uid(), err)
+		return
+	}
+
 	lastBet := uint(0)
 	for _, bet := range bets {
 		if bet.Number() > lastBet {
 			lastBet = bet.Number()
 		}
 	}
+
 	h.createBet.CreateBet(player, nwkRawBet.Amount, round, lastBet)
+
+	respondWithJSON(w, http.StatusOK, "success")
 }
 
 func respondWithError(w http.ResponseWriter, message string, err error, statusCode int) {

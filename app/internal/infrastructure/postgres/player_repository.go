@@ -56,16 +56,15 @@ func (repo *PlayerRepository) Save(player *model.Player) error {
 	return nil
 }
 
-func (repo *PlayerRepository) FindByUserAndRoom(user *userModel.User, room *roomModel.Room) *model.Player {
+func (repo *PlayerRepository) FindByUserAndRoom(user *userModel.User, room *roomModel.Room) (*model.Player, error) {
 	query := `
 		SELECT 
-		    p.id, 
 		    p.uid, 
 		    p.balance, 
 		    p.status, 
-		    p.user_id, 
-		    p.game_id,
-		    lsg.uid as game_uid
+		    lsg.uid as game_uid,
+		    lsg.action_duration as game_action_duration,
+		    lsg.question_duration as game_question_duration
 		FROM players p
 		JOIN users u ON p.user_id = u.id
 		JOIN lock_stock_games lsg ON p.game_id = lsg.id
@@ -74,60 +73,31 @@ func (repo *PlayerRepository) FindByUserAndRoom(user *userModel.User, room *room
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	var player *model.Player
-	var game *model.LockStockGame
+	var playerUid string
+	var balance int
+	var status model.PlayerStatus
+	var gameUid string
+	var gameActionDuration string
+	var gameQuestionDuration string
+
 	err := repo.db.QueryRow(ctx, query, user.Uid(), room.Uid()).Scan(
-		&player.ID,
-		&player.Uid,
-		&player.Balance,
-		&player.Status,
-		&player.UserID,
-		&player.GameID,
-		&game.UID,
+		&playerUid,
+		&balance,
+		&status,
+		&gameUid,
+		&gameActionDuration,
+		&gameQuestionDuration,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil
+			return nil, err
 		}
 		log.Printf("Query failed: %v", err)
-		return nil
+		return nil, err
 	}
-	game.SetRoom(room)
-	player.SetGame(game)
-	player.SetUser(user)
-	return player
-}
 
-func (repo *PlayerRepository) FindByUserAndGame(user *userModel.User, game *model.LockStockGame) *model.Player {
-	query := `
-		SELECT 
-		    p.uid, 
-		    p.balance, 
-		    p.status
-			p.user_id,
-			p.game_id,
-		FROM players p
-		JOIN users u ON p.user_id = u.id
-		JOIN lock_stock_games lsg ON p.game_id = lsg.id
-		WHERE u.uid = $1 AND lsg.uid = $2
-	`
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+	game := model.NewLockStockGame(gameUid, gameActionDuration, gameQuestionDuration, room)
+	player := model.NewPlayer(playerUid, user, balance, status, game)
 
-	var player *model.Player
-	err := repo.db.QueryRow(ctx, query, user.Uid(), game.Uid()).Scan(
-		&player.Uid,
-		&player.Balance,
-		&player.Status,
-	)
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return nil
-		}
-		log.Printf("Query failed: %v", err)
-		return nil
-	}
-	player.SetGame(game)
-	player.SetUser(user)
-	return player
+	return player, err
 }

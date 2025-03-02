@@ -8,5 +8,5 @@ import (
 
 type PlayerRepository interface {
 	Save(player *model.Player) error
-	FindByUserAndRoom(user *userModel.User, room *roomModel.Room) *model.Player
+	FindByUserAndRoom(user *userModel.User, room *roomModel.Room) (*model.Player, error)
 }

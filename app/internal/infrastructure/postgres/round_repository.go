@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"lock-stock-v2/internal/domain/game/model"
@@ -69,6 +70,45 @@ func (repo *RoundRepository) FindByGame(game *model.LockStockGame) ([]*model.Rou
 	}
 
 	return rounds, nil
+}
+
+func (repo *RoundRepository) FindLastByGame(game *model.LockStockGame) (*model.Round, error) {
+	query := `
+        SELECT
+            r.uid,
+            r.number,
+            r.buy_in,
+            r.pot,
+            r.game_id
+        FROM rounds r
+        WHERE r.game_id = (SELECT id FROM lock_stock_games WHERE uid = $1)
+        ORDER BY r.number DESC
+        LIMIT 1
+    `
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	row := repo.db.QueryRow(ctx, query, game.Uid())
+
+	var roundUid string
+	var number uint
+	var buyIn uint
+	var pot uint
+	var gameId uint
+
+	err := row.Scan(&roundUid, &number, &buyIn, &pot, &gameId)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("failed to find last round by game: %w", err)
+	}
+
+	round := model.NewRound(roundUid, &number, buyIn, pot, game)
+	round.SetGame(game)
+
+	return round, nil
 }
 
 func (repo *RoundRepository) Save(round *model.Round) error {
