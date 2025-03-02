@@ -23,9 +23,20 @@ type JoinRoomResponse struct {
 	UserName string `json:"userName"`
 }
 
+// NwkRawBet defines model for NwkRawBet.
+type NwkRawBet struct {
+	Amount int    `json:"amount"`
+	RoomId string `json:"roomId"`
+}
+
 // RoomResponse defines model for RoomResponse.
 type RoomResponse struct {
 	RoomUid *string `json:"roomUid,omitempty"`
+}
+
+// MakeBetParams defines parameters for MakeBet.
+type MakeBetParams struct {
+	Authorization string `json:"Authorization"`
 }
 
 // JoinRoomParams defines parameters for JoinRoom.
@@ -33,8 +44,14 @@ type JoinRoomParams struct {
 	Authorization string `json:"Authorization"`
 }
 
+// MakeBetJSONRequestBody defines body for MakeBet for application/json ContentType.
+type MakeBetJSONRequestBody = NwkRawBet
+
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+
+	// (POST /bet/make)
+	MakeBet(w http.ResponseWriter, r *http.Request, params MakeBetParams)
 
 	// (POST /join/{roomId})
 	JoinRoom(w http.ResponseWriter, r *http.Request, roomId string, params JoinRoomParams)
@@ -49,6 +66,11 @@ type ServerInterface interface {
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
 
 type Unimplemented struct{}
+
+// (POST /bet/make)
+func (_ Unimplemented) MakeBet(w http.ResponseWriter, r *http.Request, params MakeBetParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
 
 // (POST /join/{roomId})
 func (_ Unimplemented) JoinRoom(w http.ResponseWriter, r *http.Request, roomId string, params JoinRoomParams) {
@@ -75,6 +97,51 @@ type ServerInterfaceWrapper struct {
 }
 
 type MiddlewareFunc func(http.Handler) http.Handler
+
+// MakeBet operation middleware
+func (siw *ServerInterfaceWrapper) MakeBet(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params MakeBetParams
+
+	headers := r.Header
+
+	// ------------- Required header parameter "Authorization" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("Authorization")]; found {
+		var Authorization string
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "Authorization", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithLocation("simple", false, "Authorization", runtime.ParamLocationHeader, valueList[0], &Authorization)
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "Authorization", Err: err})
+			return
+		}
+
+		params.Authorization = Authorization
+
+	} else {
+		err := fmt.Errorf("Header parameter Authorization is required, but not found")
+		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "Authorization", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.MakeBet(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
 
 // JoinRoom operation middleware
 func (siw *ServerInterfaceWrapper) JoinRoom(w http.ResponseWriter, r *http.Request) {
@@ -286,6 +353,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		ErrorHandlerFunc:   options.ErrorHandlerFunc,
 	}
 
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/bet/make", wrapper.MakeBet)
+	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/join/{roomId}", wrapper.JoinRoom)
 	})

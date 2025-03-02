@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"lock-stock-v2/handlers/http/helpers"
+	gameService "lock-stock-v2/internal/domain/game/service"
 	roomModel "lock-stock-v2/internal/domain/room/model"
 	"lock-stock-v2/internal/domain/room/repository"
 	"lock-stock-v2/internal/domain/room/service"
@@ -19,6 +20,7 @@ type RoomHandler struct {
 	startGameService *service.StartGameService
 	roomRepository   repository.RoomRepository
 	userRepository   userRepository.UserRepository
+	createBet        *gameService.CreateBetService
 }
 
 func NewRoomHandler(
@@ -27,6 +29,7 @@ func NewRoomHandler(
 	userRepository userRepository.UserRepository,
 	roomUserService *services.RoomUserService,
 	startGameService *service.StartGameService,
+	createBet *gameService.CreateBetService,
 ) *RoomHandler {
 	return &RoomHandler{
 		joinRoomService:  u,
@@ -34,6 +37,7 @@ func NewRoomHandler(
 		roomUserService:  roomUserService,
 		startGameService: startGameService,
 		userRepository:   userRepository,
+		createBet:        createBet,
 	}
 }
 
@@ -156,6 +160,10 @@ func (h *RoomHandler) JoinRoom(w http.ResponseWriter, r *http.Request, roomId st
 	}
 
 	respondWithJSON(w, http.StatusOK, response)
+}
+
+func (h *RoomHandler) MakeBet(w http.ResponseWriter, r *http.Request, params MakeBetParams) {
+	h.createBet.CreateBet()
 }
 
 func respondWithError(w http.ResponseWriter, message string, err error, statusCode int) {
