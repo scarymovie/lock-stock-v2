@@ -83,8 +83,8 @@ func (cgs *CreateGameService) createPlayers(users []*userModel.User, game *model
 		}
 		players = append(players, player)
 		playersData = append(playersData, map[string]interface{}{
-			"userId":  player.User().Uid(),
-			"balance": player.Balance(),
+			"playerId": player.User().Uid(),
+			"balance":  player.Balance(),
 		})
 	}
 	return players, playersData, nil
@@ -98,7 +98,7 @@ func (cgs *CreateGameService) publishGameStartedEvent(room *roomModel.Room, game
 		"players":          playersData,
 	}
 	message := map[string]interface{}{
-		"event": "game_started",
+		"event": "start_game",
 		"body":  body,
 	}
 
