@@ -17,8 +17,8 @@ type RawCreateUser struct {
 
 // User defines model for User.
 type User struct {
-	Name   *string `json:"Name,omitempty"`
-	UserId *string `json:"UserId,omitempty"`
+	Name   *string `json:"name,omitempty"`
+	UserId *string `json:"userId,omitempty"`
 }
 
 // CreateUserJSONRequestBody defines body for CreateUser for application/json ContentType.

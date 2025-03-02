@@ -47,8 +47,8 @@ func (h *RoomHandler) GetRooms(w http.ResponseWriter, r *http.Request) {
 		respondWithError(w, "Failed to get rooms", err, http.StatusInternalServerError)
 		return
 	}
+	responseData := make([]RoomResponse, 0)
 
-	var responseData []RoomResponse
 	for _, room := range rooms {
 		var responseRoomUid = room.Uid()
 		responseData = append(responseData, RoomResponse{

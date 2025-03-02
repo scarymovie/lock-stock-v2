@@ -53,9 +53,9 @@ components:
     User:
       type: object
       properties:
-        UserId:
+        userId:
           type: string
           example: "usr-550e8400-e29b-41d4-a716-446655440000"
-        Name:
+        name:
           type: string
           example: "John Doe"
