@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"lock-stock-v2/handlers/http/helpers"
+	gameRepository "lock-stock-v2/internal/domain/game/repository"
 	gameService "lock-stock-v2/internal/domain/game/service"
 	roomModel "lock-stock-v2/internal/domain/room/model"
 	"lock-stock-v2/internal/domain/room/repository"
@@ -21,6 +22,9 @@ type RoomHandler struct {
 	roomRepository   repository.RoomRepository
 	userRepository   userRepository.UserRepository
 	createBet        *gameService.CreateBetService
+	playerRepository gameRepository.PlayerRepository
+	roundRepository  gameRepository.RoundRepository
+	betRepository    gameRepository.BetRepository
 }
 
 func NewRoomHandler(
@@ -30,6 +34,9 @@ func NewRoomHandler(
 	roomUserService *services.RoomUserService,
 	startGameService *service.StartGameService,
 	createBet *gameService.CreateBetService,
+	playerRepository gameRepository.PlayerRepository,
+	roundRepository gameRepository.RoundRepository,
+	betRepository gameRepository.BetRepository,
 ) *RoomHandler {
 	return &RoomHandler{
 		joinRoomService:  u,
@@ -38,6 +45,9 @@ func NewRoomHandler(
 		startGameService: startGameService,
 		userRepository:   userRepository,
 		createBet:        createBet,
+		playerRepository: playerRepository,
+		roundRepository:  roundRepository,
+		betRepository:    betRepository,
 	}
 }
 
@@ -163,7 +173,33 @@ func (h *RoomHandler) JoinRoom(w http.ResponseWriter, r *http.Request, roomId st
 }
 
 func (h *RoomHandler) MakeBet(w http.ResponseWriter, r *http.Request, params MakeBetParams) {
-	h.createBet.CreateBet()
+	user, err := helpers.GetUserFromString(params.Authorization, h.userRepository)
+	if err != nil {
+		var userErr *helpers.UserNotFoundError
+		ok := errors.As(err, &userErr)
+		if ok {
+			respondWithError(w, err.Error(), nil, userErr.Code)
+		} else {
+			respondWithError(w, "Error getting user", err, http.StatusInternalServerError)
+		}
+		return
+	}
+	var nwkRawBet NwkRawBet
+	if err := json.NewDecoder(r.Body).Decode(&nwkRawBet); err != nil {
+		respondWithError(w, "invalid request body", err, http.StatusBadRequest)
+		return
+	}
+	room, _ := h.roomRepository.FindById(nwkRawBet.RoomId)
+	player := h.playerRepository.FindByUserAndRoom(user, room)
+	round, _ := h.roundRepository.FindLastByGame(player.Game())
+	bets, _ := h.betRepository.FindByRound(round)
+	lastBet := uint(0)
+	for _, bet := range bets {
+		if bet.Number() > lastBet {
+			lastBet = bet.Number()
+		}
+	}
+	h.createBet.CreateBet(player, nwkRawBet.Amount, round, lastBet)
 }
 
 func respondWithError(w http.ResponseWriter, message string, err error, statusCode int) {
