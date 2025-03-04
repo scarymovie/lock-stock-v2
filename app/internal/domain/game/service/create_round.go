@@ -80,6 +80,25 @@ func (s *CreateRoundService) CreateRound(game *model.LockStockGame, players []*m
 	}
 	s.roundRepo.Save(round)
 
+	bodyUpdateRound := map[string]interface{}{
+		"roundNumber": roundNumber,
+		"pot":         round.Pot(),
+	}
+
+	messageUpdateRound := map[string]interface{}{
+		"event": "round_updated",
+		"body":  bodyUpdateRound,
+	}
+
+	jsonMessageBodyUpdated, err := json.Marshal(messageUpdateRound)
+	if err != nil {
+		log.Printf("Failed to marshal WebSocket message: %v\n", err)
+		return err
+	}
+
+	log.Println(string(jsonMessageBodyUpdated))
+	s.webSocket.PublishToRoom(game.Room().Uid(), jsonMessageBodyUpdated)
+
 	return nil
 }
 
