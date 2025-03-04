@@ -37,6 +37,27 @@ func (s *CreateRoundService) CreateRound(game *model.LockStockGame, players []*m
 	round := model.NewRound(roomId, &roundNumber, uint(500), 0, game)
 	s.roundRepo.Save(round)
 
+	body := map[string]interface{}{
+		"roundNumber": roundNumber,
+		"question":    NewQuestionMessage(round.Question()),
+		"buyIn":       round.BuyIn(),
+		"pot":         round.Pot(),
+	}
+
+	message := map[string]interface{}{
+		"event": "round_started",
+		"body":  body,
+	}
+
+	jsonMessage, err := json.Marshal(message)
+	if err != nil {
+		log.Printf("Failed to marshal WebSocket message: %v\n", err)
+		return err
+	}
+
+	log.Println(string(jsonMessage))
+	s.webSocket.PublishToRoom(game.Room().Uid(), jsonMessage)
+
 	roundPrice := roundCoefficient * int(roundNumber)
 
 	var bets []*model.Bet
@@ -59,26 +80,6 @@ func (s *CreateRoundService) CreateRound(game *model.LockStockGame, players []*m
 	}
 	s.roundRepo.Save(round)
 
-	body := map[string]interface{}{
-		"roundNumber": roundNumber,
-		"question":    NewQuestionMessage(round.Question()),
-		"buyIn":       round.BuyIn(),
-		"pot":         round.Pot(),
-	}
-
-	message := map[string]interface{}{
-		"event": "round_started",
-		"body":  body,
-	}
-
-	jsonMessage, err := json.Marshal(message)
-	if err != nil {
-		log.Printf("Failed to marshal WebSocket message: %v\n", err)
-		return err
-	}
-
-	log.Println(string(jsonMessage))
-	s.webSocket.PublishToRoom(game.Room().Uid(), jsonMessage)
 	return nil
 }
 
