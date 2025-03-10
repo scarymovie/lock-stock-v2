@@ -45,10 +45,11 @@ services:
   migrate:
     image: migrate/migrate
     container_name: lock-stock-v2-migrate
+    user: "1000:1000"
     depends_on:
       postgres:
         condition: service_healthy
-    entrypoint:  ["tail", "-f", "/dev/null"]
+    entrypoint: [ "tail", "-f", "/dev/null" ]
     volumes:
       - ../app/migrations:/migrations
     networks:

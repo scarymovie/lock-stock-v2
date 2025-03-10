@@ -24,13 +24,12 @@ func NewPostgresPlayerRepository(db *pgxpool.Pool) *PlayerRepository {
 
 func (repo *PlayerRepository) Save(player *model.Player) error {
 	query := `
-		INSERT INTO players (uid, balance, status, user_id, game_id)
+		INSERT INTO players (balance, status, user_id, game_id)
 		VALUES (
 		        $1,
-		        $2,
-		        $3, 
-		        (SELECT id FROM users WHERE uid = $4), 
-		        (SELECT id FROM lock_stock_games WHERE uid = $5)
+		        $2, 
+		        (SELECT id FROM users WHERE uid = $3), 
+		        (SELECT id FROM lock_stock_games WHERE uid = $4)
 		)
 	`
 
@@ -38,7 +37,6 @@ func (repo *PlayerRepository) Save(player *model.Player) error {
 	defer cancel()
 
 	_, err := repo.db.Exec(ctx, query,
-		player.Uid(),
 		player.Balance(),
 		player.Status(),
 		player.User().Uid(),
@@ -59,7 +57,6 @@ func (repo *PlayerRepository) Save(player *model.Player) error {
 func (repo *PlayerRepository) FindByUserAndRoom(user *userModel.User, room *roomModel.Room) (*model.Player, error) {
 	query := `
 		SELECT 
-		    p.uid, 
 		    p.balance, 
 		    p.status, 
 		    lsg.uid as game_uid,
@@ -73,7 +70,6 @@ func (repo *PlayerRepository) FindByUserAndRoom(user *userModel.User, room *room
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	var playerUid string
 	var balance int
 	var status model.PlayerStatus
 	var gameUid string
@@ -81,7 +77,6 @@ func (repo *PlayerRepository) FindByUserAndRoom(user *userModel.User, room *room
 	var gameQuestionDuration string
 
 	err := repo.db.QueryRow(ctx, query, user.Uid(), room.Uid()).Scan(
-		&playerUid,
 		&balance,
 		&status,
 		&gameUid,
@@ -97,7 +92,7 @@ func (repo *PlayerRepository) FindByUserAndRoom(user *userModel.User, room *room
 	}
 
 	game := model.NewLockStockGame(gameUid, gameActionDuration, gameQuestionDuration, room)
-	player := model.NewPlayer(playerUid, user, balance, status, game)
+	player := model.NewPlayer(user, balance, status, game)
 
 	return player, err
 }

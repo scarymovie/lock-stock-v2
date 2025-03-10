@@ -12,15 +12,14 @@ const (
 )
 
 type Player struct {
-	uid     string
 	user    *userModel.User
 	balance int
 	status  PlayerStatus
 	game    *LockStockGame
 }
 
-func NewPlayer(uid string, user *userModel.User, balance int, status PlayerStatus, game *LockStockGame) *Player {
-	return &Player{uid: uid, user: user, balance: balance, status: status, game: game}
+func NewPlayer(user *userModel.User, balance int, status PlayerStatus, game *LockStockGame) *Player {
+	return &Player{user: user, balance: balance, status: status, game: game}
 }
 
 func (p *Player) User() *userModel.User {
@@ -29,14 +28,6 @@ func (p *Player) User() *userModel.User {
 
 func (p *Player) SetUser(user *userModel.User) {
 	p.user = user
-}
-
-func (p *Player) Uid() string {
-	return p.uid
-}
-
-func (p *Player) SetUid(uid string) {
-	p.uid = uid
 }
 
 func (p *Player) Status() PlayerStatus {

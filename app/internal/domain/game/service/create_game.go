@@ -75,7 +75,7 @@ func (cgs *CreateGameService) createPlayers(users []*userModel.User, game *model
 	var playersData []map[string]interface{}
 
 	for _, user := range users {
-		player := model.NewPlayer("player-"+uuid.New().String(), user, 25000, model.StatusPlaying, game)
+		player := model.NewPlayer(user, 25000, model.StatusPlaying, game)
 		err := cgs.playerRepository.Save(player)
 		if err != nil {
 			log.Println("Error saving player:", err)
@@ -83,8 +83,8 @@ func (cgs *CreateGameService) createPlayers(users []*userModel.User, game *model
 		}
 		players = append(players, player)
 		playersData = append(playersData, map[string]interface{}{
-			"playerId": player.User().Uid(),
-			"balance":  player.Balance(),
+			"userId":  player.User().Uid(),
+			"balance": player.Balance(),
 		})
 	}
 	return players, playersData, nil
