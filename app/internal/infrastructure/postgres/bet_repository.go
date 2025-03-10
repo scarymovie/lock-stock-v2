@@ -36,24 +36,27 @@ func (repo *BetRepository) Save(bet *model.Bet) error {
 	}
 
 	query := `
-        INSERT INTO bets (
-                          amount,
-                          player_id,
-                          round_id,
-                          number)
-        VALUES (
-					$1,
-					(SELECT id FROM players WHERE uid = $2),
-					$3, 
-					$4
-                )
-    `
+	INSERT INTO bets (
+		amount,
+		player_id,
+		round_id,
+		number
+	)
+	SELECT 
+		$1,
+		p.id,
+		$2,
+		$3
+	FROM players p
+	JOIN users u ON p.user_id = u.id
+	WHERE u.uid = $4
+	`
 
 	_, err = repo.db.Exec(ctx, query,
 		bet.Amount(),
-		bet.Player().Uid(),
 		roundID,
 		int(bet.Number()),
+		bet.Player().User().Uid(),
 	)
 
 	if err != nil {
@@ -141,7 +144,7 @@ func (repo *BetRepository) findPlayerById(ctx context.Context, playerId uint) (*
 		return nil, fmt.Errorf("failed to find game: %w", err)
 	}
 
-	return model.NewPlayer(playerUid, user, balance, status, game), nil
+	return model.NewPlayer(user, balance, status, game), nil
 }
 
 func (repo *BetRepository) findUserById(ctx context.Context, userId uint) (*userModel.User, error) {
