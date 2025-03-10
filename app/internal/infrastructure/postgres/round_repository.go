@@ -22,7 +22,6 @@ func NewPostgresRoundRepository(db *pgxpool.Pool) *RoundRepository {
 	return &RoundRepository{db: db}
 }
 
-// FindByGame загружает все раунды вместе с игрой и комнатой
 func (repo *RoundRepository) FindByGame(game *gameModel.LockStockGame) ([]*gameModel.Round, error) {
 	query := `
 		SELECT 
