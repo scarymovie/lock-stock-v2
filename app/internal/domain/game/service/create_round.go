@@ -27,14 +27,37 @@ func NewCreateRoundService(roundRepo repository.RoundRepository, createBetServic
 }
 
 func (s *CreateRoundService) CreateRound(game *model.LockStockGame, players []*model.Player) error {
+
 	rounds, _ := s.roundRepo.FindByGame(game)
 	roundNumber := uint(1)
 	if len(rounds) > 0 {
 		roundNumber = uint(len(rounds) + 1)
 	}
-	roomId := "round-" + uuid.New().String()
 
-	round := model.NewRound(roomId, &roundNumber, uint(500), 0, game)
+	roundId := "round-" + uuid.New().String()
+
+	round := model.NewRound(roundId, &roundNumber, uint(500), 0, game)
+	roundPrice := roundCoefficient * int(roundNumber)
+	s.roundRepo.Save(round)
+
+	var bets []*model.Bet
+	for i, player := range players {
+		newBalance := 0
+		betValue := player.Balance()
+		if roundPrice < player.Balance() {
+			newBalance = player.Balance() - roundPrice
+			betValue = roundPrice
+		}
+		bet, _ := s.createBetService.CreateBet(player, betValue, round, uint(i+1))
+		bets = append(bets, bet)
+		player.SetBalance(newBalance)
+	}
+
+	pot := 0
+	for _, bet := range bets {
+		pot += bet.Amount()
+		round.SetPot(uint(pot))
+	}
 	s.roundRepo.Save(round)
 
 	body := map[string]interface{}{
@@ -57,47 +80,6 @@ func (s *CreateRoundService) CreateRound(game *model.LockStockGame, players []*m
 
 	log.Println(string(jsonMessage))
 	s.webSocket.PublishToRoom(game.Room().Uid(), jsonMessage)
-
-	roundPrice := roundCoefficient * int(roundNumber)
-
-	var bets []*model.Bet
-	for i, player := range players {
-		newBalance := 0
-		betValue := player.Balance()
-		if roundPrice < player.Balance() {
-			newBalance = player.Balance() - roundPrice
-			betValue = roundPrice
-		}
-		bet, _ := s.createBetService.CreateBet(player, betValue, round, uint(i+1))
-		bets = append(bets, bet)
-		player.SetBalance(newBalance)
-	}
-
-	pot := 0
-	for _, bet := range bets {
-		pot += bet.Amount()
-		round.SetPot(uint(pot))
-	}
-	s.roundRepo.Save(round)
-
-	bodyUpdateRound := map[string]interface{}{
-		"roundNumber": roundNumber,
-		"pot":         round.Pot(),
-	}
-
-	messageUpdateRound := map[string]interface{}{
-		"event": "round_updated",
-		"body":  bodyUpdateRound,
-	}
-
-	jsonMessageBodyUpdated, err := json.Marshal(messageUpdateRound)
-	if err != nil {
-		log.Printf("Failed to marshal WebSocket message: %v\n", err)
-		return err
-	}
-
-	log.Println(string(jsonMessageBodyUpdated))
-	s.webSocket.PublishToRoom(game.Room().Uid(), jsonMessageBodyUpdated)
 
 	return nil
 }
