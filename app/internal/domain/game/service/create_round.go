@@ -20,6 +20,18 @@ type QuestionMessage struct {
 	Hints []string `json:"hints"`
 }
 
+type RoundStartedMessage struct {
+	Event string                  `json:"event"`
+	Body  RoundStartedMessageBody `json:"body"`
+}
+
+type RoundStartedMessageBody struct {
+	RoundNumber uint            `json:"roundNumber"`
+	Question    QuestionMessage `json:"question"`
+	BuyIn       uint            `json:"buyIn"`
+	Pot         uint            `json:"pot"`
+}
+
 const roundCoefficient = 500
 
 func NewCreateRoundService(roundRepo repository.RoundRepository, createBetService *CreateBetService, webSocket websocket.Manager) *CreateRoundService {
@@ -27,7 +39,6 @@ func NewCreateRoundService(roundRepo repository.RoundRepository, createBetServic
 }
 
 func (s *CreateRoundService) CreateRound(game *model.LockStockGame, players []*model.Player) error {
-
 	rounds, _ := s.roundRepo.FindByGame(game)
 	roundNumber := uint(1)
 	if len(rounds) > 0 {
@@ -35,8 +46,7 @@ func (s *CreateRoundService) CreateRound(game *model.LockStockGame, players []*m
 	}
 
 	roundId := "round-" + uuid.New().String()
-
-	round := model.NewRound(roundId, &roundNumber, uint(500), 0, game)
+	round := model.NewRound(roundId, &roundNumber, uint(roundCoefficient), 0, game)
 	roundPrice := roundCoefficient * int(roundNumber)
 	s.roundRepo.Save(round)
 
@@ -60,16 +70,18 @@ func (s *CreateRoundService) CreateRound(game *model.LockStockGame, players []*m
 	}
 	s.roundRepo.Save(round)
 
-	body := map[string]interface{}{
-		"roundNumber": roundNumber,
-		"question":    NewQuestionMessage(round.Question()),
-		"buyIn":       round.BuyIn(),
-		"pot":         round.Pot(),
-	}
+	return s.sendRoundStartedMessage(game, round)
+}
 
-	message := map[string]interface{}{
-		"event": "round_started",
-		"body":  body,
+func (s *CreateRoundService) sendRoundStartedMessage(game *model.LockStockGame, round *model.Round) error {
+	message := RoundStartedMessage{
+		Event: "round_started",
+		Body: RoundStartedMessageBody{
+			RoundNumber: *round.Number(),
+			Question:    NewQuestionMessage(round.Question()),
+			BuyIn:       round.BuyIn(),
+			Pot:         round.Pot(),
+		},
 	}
 
 	jsonMessage, err := json.Marshal(message)
@@ -80,7 +92,6 @@ func (s *CreateRoundService) CreateRound(game *model.LockStockGame, players []*m
 
 	log.Println(string(jsonMessage))
 	s.webSocket.PublishToRoom(game.Room().Uid(), jsonMessage)
-
 	return nil
 }
 
