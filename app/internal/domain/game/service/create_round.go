@@ -74,37 +74,6 @@ func (s *CreateRoundService) CreateRound(game *model.LockStockGame, players []*m
 		round.SetPot(uint(pot))
 	}
 
-	var (
-		minBetsValue   = ^uint(0)
-		maxBetsValue   uint
-		minNumber      = ^uint(0)
-		selectedPlayer *model.Player
-	)
-
-	for _, roundPlayerLog := range roundPlayerLogs {
-		betsValue := roundPlayerLog.BetsValue()
-		number := roundPlayerLog.Number()
-		player := roundPlayerLog.Player()
-
-		if betsValue < minBetsValue {
-			minBetsValue = betsValue
-			minNumber = number
-			selectedPlayer = player
-		} else if betsValue == minBetsValue && number < minNumber {
-			minNumber = number
-			selectedPlayer = player
-		}
-
-		if betsValue > maxBetsValue {
-			maxBetsValue = betsValue
-		}
-	}
-
-	if selectedPlayer != nil {
-		round.SetPlayerTurn(selectedPlayer)
-		round.SetMaxBet(maxBetsValue)
-	}
-
 	s.roundRepo.Save(round)
 
 	return s.sendRoundStartedMessage(game, round)

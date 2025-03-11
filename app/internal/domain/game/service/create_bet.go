@@ -24,8 +24,8 @@ type NewBetBody struct {
 	Amount int    `json:"amount"`
 }
 
-func NewCreateBetService(betRepository repository.BetRepository, websocket websocket.Manager) *CreateBetService {
-	return &CreateBetService{betRepository: betRepository, webSocket: websocket}
+func NewCreateBetService(betRepository repository.BetRepository, websocket websocket.Manager, roundPlayerLogRepository repository.RoundPlayerLogRepository) *CreateBetService {
+	return &CreateBetService{betRepository: betRepository, webSocket: websocket, roundPlayerLogRepository: roundPlayerLogRepository}
 }
 
 func (cbs *CreateBetService) CreateBet(player *model.Player, amount int, round *model.Round) (*model.Bet, error) {
