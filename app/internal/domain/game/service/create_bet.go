@@ -20,8 +20,10 @@ type NewBetMessage struct {
 }
 
 type NewBetBody struct {
-	UserID string `json:"userId"`
-	Amount int    `json:"amount"`
+	UserID           string `json:"userId"`
+	Amount           int    `json:"amount"`
+	NextPlayerTurnID string `json:"nextPlayerTurnID"`
+	MaxBet           uint   `json:"maxBet"`
 }
 
 func NewCreateBetService(betRepository repository.BetRepository, websocket websocket.Manager, roundPlayerLogRepository repository.RoundPlayerLogRepository) *CreateBetService {
@@ -78,8 +80,10 @@ func (cbs *CreateBetService) CreateBet(player *model.Player, amount int, round *
 	message := NewBetMessage{
 		Event: "new_bet",
 		Body: NewBetBody{
-			UserID: player.User().Uid(),
-			Amount: amount,
+			UserID:           player.User().Uid(),
+			Amount:           amount,
+			NextPlayerTurnID: round.PlayerTurn().User().Uid(),
+			MaxBet:           round.MaxBet(),
 		},
 	}
 
