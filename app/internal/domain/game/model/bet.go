@@ -4,7 +4,10 @@ type Bet struct {
 	player *Player
 	amount int
 	round  *Round
-	number uint
+}
+
+func NewBet(player *Player, amount int, round *Round) *Bet {
+	return &Bet{player: player, amount: amount, round: round}
 }
 
 func (b *Bet) Player() *Player {
@@ -29,16 +32,4 @@ func (b *Bet) Round() *Round {
 
 func (b *Bet) SetRound(round *Round) {
 	b.round = round
-}
-
-func (b *Bet) Number() uint {
-	return b.number
-}
-
-func (b *Bet) SetNumber(number uint) {
-	b.number = number
-}
-
-func NewBet(player *Player, amount int, round *Round, number uint) *Bet {
-	return &Bet{player: player, amount: amount, round: round, number: number}
 }

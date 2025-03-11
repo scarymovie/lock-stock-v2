@@ -9,8 +9,9 @@ import (
 )
 
 type CreateBetService struct {
-	betRepository repository.BetRepository
-	webSocket     websocket.Manager
+	betRepository            repository.BetRepository
+	webSocket                websocket.Manager
+	roundPlayerLogRepository repository.RoundPlayerLogRepository
 }
 
 type NewBetMessage struct {
@@ -27,12 +28,51 @@ func NewCreateBetService(betRepository repository.BetRepository, websocket webso
 	return &CreateBetService{betRepository: betRepository, webSocket: websocket}
 }
 
-func (cbs CreateBetService) CreateBet(player *model.Player, amount int, round *model.Round) (*model.Bet, error) {
+func (cbs *CreateBetService) CreateBet(player *model.Player, amount int, round *model.Round) (*model.Bet, error) {
 	bet := model.NewBet(player, amount, round)
 	err := cbs.betRepository.Save(bet)
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
+	}
+
+	roundPlayerLogs, _ := cbs.roundPlayerLogRepository.FindByRound(round)
+
+	for _, roundPlayerLog := range roundPlayerLogs {
+		if roundPlayerLog.Player().User().Uid() == player.User().Uid() {
+			roundPlayerLog.SetBetsValue(roundPlayerLog.BetsValue() + uint(amount))
+		}
+	}
+
+	var (
+		minBetsValue   = ^uint(0)
+		maxBetsValue   uint
+		minNumber      = ^uint(0)
+		selectedPlayer *model.Player
+	)
+
+	for _, roundPlayerLog := range roundPlayerLogs {
+		betsValue := roundPlayerLog.BetsValue()
+		number := roundPlayerLog.Number()
+		roundPlayerLogPlayer := roundPlayerLog.Player()
+
+		if betsValue < minBetsValue {
+			minBetsValue = betsValue
+			minNumber = number
+			selectedPlayer = roundPlayerLogPlayer
+		} else if betsValue == minBetsValue && number < minNumber {
+			minNumber = number
+			selectedPlayer = roundPlayerLogPlayer
+		}
+
+		if betsValue > maxBetsValue {
+			maxBetsValue = betsValue
+		}
+	}
+
+	if selectedPlayer != nil {
+		round.SetPlayerTurn(selectedPlayer)
+		round.SetMaxBet(maxBetsValue)
 	}
 
 	message := NewBetMessage{
@@ -50,7 +90,7 @@ func (cbs CreateBetService) CreateBet(player *model.Player, amount int, round *m
 	return bet, nil
 }
 
-func (cbs CreateBetService) sendWebSocketMessage(roomID string, message NewBetMessage) error {
+func (cbs *CreateBetService) sendWebSocketMessage(roomID string, message NewBetMessage) error {
 	jsonMessage, err := json.Marshal(message)
 	if err != nil {
 		log.Printf("Failed to marshal WebSocket message: %v\n", err)
