@@ -208,7 +208,11 @@ func (h *RoomHandler) MakeBet(w http.ResponseWriter, r *http.Request, params Mak
 		return
 	}
 
-	h.createBet.CreateBet(player, nwkRawBet.Amount, round)
+	_, err = h.createBet.CreateBet(player, nwkRawBet.Amount, round)
+	if err != nil {
+		log.Println("error creating bet:", err)
+		return
+	}
 
 	respondWithJSON(w, http.StatusOK, "success")
 }
@@ -221,7 +225,11 @@ func respondWithError(w http.ResponseWriter, message string, err error, statusCo
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
-	json.NewEncoder(w).Encode(map[string]string{"error": errorMessage})
+	err = json.NewEncoder(w).Encode(map[string]string{"error": errorMessage})
+	if err != nil {
+		log.Println("Failed to encode error response:", err)
+		return
+	}
 }
 
 func respondWithJSON(w http.ResponseWriter, statusCode int, data interface{}) {
