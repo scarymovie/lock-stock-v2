@@ -14,6 +14,10 @@ type RoundPlayerLog struct {
 	betsValue uint
 }
 
+func NewRoundPlayerLog(player *Player, round *Round, number uint, betsValue uint) *RoundPlayerLog {
+	return &RoundPlayerLog{player: player, round: round, number: number, betsValue: betsValue}
+}
+
 func (r *RoundPlayerLog) SetBetsValue(betsValue uint) {
 	r.betsValue = betsValue
 }
@@ -32,8 +36,4 @@ func (r *RoundPlayerLog) Number() uint {
 
 func (r *RoundPlayerLog) BetsValue() uint {
 	return r.betsValue
-}
-
-func NewRoundPlayerLog(player *Player, round *Round, number uint, betsValue uint) *RoundPlayerLog {
-	return &RoundPlayerLog{player: player, round: round, number: number, betsValue: betsValue}
 }

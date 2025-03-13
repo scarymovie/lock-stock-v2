@@ -208,20 +208,7 @@ func (h *RoomHandler) MakeBet(w http.ResponseWriter, r *http.Request, params Mak
 		return
 	}
 
-	bets, err := h.betRepository.FindByRound(round)
-	if err != nil {
-		log.Printf("error finding bets for round %s: %v", round.Uid(), err)
-		return
-	}
-
-	lastBet := uint(0)
-	for _, bet := range bets {
-		if bet.Number() > lastBet {
-			lastBet = bet.Number()
-		}
-	}
-
-	h.createBet.CreateBet(player, nwkRawBet.Amount, round, lastBet)
+	h.createBet.CreateBet(player, nwkRawBet.Amount, round)
 
 	respondWithJSON(w, http.StatusOK, "success")
 }
