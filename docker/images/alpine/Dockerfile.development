@@ -1,37 +1,30 @@
 ARG GO_DOCKER_VERSION=1.24.0
 
-FROM golang:${GO_DOCKER_VERSION}-alpine AS builder
+FROM golang:${GO_DOCKER_VERSION}-alpine AS base
 
-RUN apk add --no-cache git ca-certificates
-
-ENV APP_SRC=/go/src \
-    APP_BIN=/go/bin \
-    CGO_ENABLED=0 \
+ENV CGO_ENABLED=0 \
     GOOS=linux \
     GOARCH=amd64
 
-WORKDIR ${APP_SRC}
+WORKDIR /app
 
 COPY go.mod go.sum ./
 RUN go mod download
 
+FROM base AS tester
+
 COPY . .
+RUN go test -v ./...
 
-RUN go test ./... -v
+FROM base AS builder
 
-RUN go build -o ${APP_BIN}/app ${APP_SRC}/cmd/app/main.go
+COPY . .
+RUN go build -ldflags="-s -w" -o /app/app ./cmd/app/main.go
 
 FROM alpine:latest AS runner
 
-RUN apk --no-cache add ca-certificates
+WORKDIR /app
+COPY --from=builder /app/app .
 
-ENV APP_BIN=/app \
-    APP_LISTEN_PORT=8080
-
-WORKDIR ${APP_BIN}
-
-COPY --from=builder /go/bin/app .
-
-EXPOSE ${APP_LISTEN_PORT}
-
+EXPOSE 8080
 CMD ["./app"]
