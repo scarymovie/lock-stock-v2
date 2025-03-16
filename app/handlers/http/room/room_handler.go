@@ -16,15 +16,17 @@ import (
 )
 
 type RoomHandler struct {
-	joinRoomService  *services.JoinRoomService
-	roomUserService  *services.RoomUserService
-	startGameService *service.StartGameService
-	roomRepository   repository.RoomRepository
-	userRepository   userRepository.UserRepository
-	createBet        *gameService.CreateBetService
-	playerRepository gameRepository.PlayerRepository
-	roundRepository  gameRepository.RoundRepository
-	betRepository    gameRepository.BetRepository
+	joinRoomService          *services.JoinRoomService
+	roomUserService          *services.RoomUserService
+	startGameService         *service.StartGameService
+	roomRepository           repository.RoomRepository
+	userRepository           userRepository.UserRepository
+	createBet                *gameService.CreateBetService
+	playerRepository         gameRepository.PlayerRepository
+	roundRepository          gameRepository.RoundRepository
+	betRepository            gameRepository.BetRepository
+	gameRepository           gameRepository.GameRepository
+	roundPlayerLogRepository gameRepository.RoundPlayerLogRepository
 }
 
 func NewRoomHandler(
@@ -37,17 +39,21 @@ func NewRoomHandler(
 	playerRepository gameRepository.PlayerRepository,
 	roundRepository gameRepository.RoundRepository,
 	betRepository gameRepository.BetRepository,
+	gameRepository gameRepository.GameRepository,
+	roundPlayerLogRepository gameRepository.RoundPlayerLogRepository,
 ) *RoomHandler {
 	return &RoomHandler{
-		joinRoomService:  u,
-		roomRepository:   roomRepository,
-		roomUserService:  roomUserService,
-		startGameService: startGameService,
-		userRepository:   userRepository,
-		createBet:        createBet,
-		playerRepository: playerRepository,
-		roundRepository:  roundRepository,
-		betRepository:    betRepository,
+		joinRoomService:          u,
+		roomRepository:           roomRepository,
+		roomUserService:          roomUserService,
+		startGameService:         startGameService,
+		userRepository:           userRepository,
+		createBet:                createBet,
+		playerRepository:         playerRepository,
+		roundRepository:          roundRepository,
+		betRepository:            betRepository,
+		gameRepository:           gameRepository,
+		roundPlayerLogRepository: roundPlayerLogRepository,
 	}
 }
 
@@ -122,6 +128,53 @@ func (h *RoomHandler) StartGame(w http.ResponseWriter, r *http.Request, roomId s
 	}
 
 	respondWithJSON(w, http.StatusOK, map[string]string{"message": "Game started"})
+}
+
+func (h *RoomHandler) SendAnswer(w http.ResponseWriter, r *http.Request, params SendAnswerParams) {
+	user, err := helpers.GetUserFromString(params.Authorization, h.userRepository)
+	if err != nil {
+		var userErr *helpers.UserNotFoundError
+		ok := errors.As(err, &userErr)
+		if ok {
+			respondWithError(w, err.Error(), nil, userErr.Code)
+		} else {
+			respondWithError(w, "Error getting user", err, http.StatusInternalServerError)
+		}
+		return
+	}
+	if user == nil {
+		log.Println("User not found")
+		return
+	}
+	game, err := h.gameRepository.FindByUser(user)
+	if err != nil {
+		log.Printf("Game by user %s not found", user.Uid())
+		return
+	}
+	round, err := h.roundRepository.FindLastByGame(game)
+	if err != nil {
+		log.Printf("Round by game %s not found", game.Uid())
+		return
+	}
+	var nwkRawAnswer NwkRawAnswer
+	if err = json.NewDecoder(r.Body).Decode(&nwkRawAnswer); err != nil {
+		respondWithError(w, "invalid request body", err, http.StatusBadRequest)
+		return
+	}
+	roundPlayerLog, err := h.roundPlayerLogRepository.FindByRoundAndUser(round, user)
+	if err != nil {
+		respondWithError(w, "invalid request body", err, http.StatusBadRequest)
+		return
+	}
+	if nil != roundPlayerLog {
+		answer := uint(nwkRawAnswer.Value)
+		roundPlayerLog.SetAnswer(&answer)
+		err = h.roundPlayerLogRepository.Save(roundPlayerLog)
+		if err != nil {
+			respondWithError(w, "invalid request body", err, http.StatusBadRequest)
+			return
+		}
+	}
 }
 
 func (h *RoomHandler) JoinRoom(w http.ResponseWriter, r *http.Request, roomId string, params JoinRoomParams) {

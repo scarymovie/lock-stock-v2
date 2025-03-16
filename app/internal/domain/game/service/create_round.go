@@ -10,9 +10,10 @@ import (
 )
 
 type CreateRoundService struct {
-	roundRepo        repository.RoundRepository
-	createBetService *CreateBetService
-	webSocket        websocket.Manager
+	roundRepo            repository.RoundRepository
+	createBetService     *CreateBetService
+	createRoundPlayerLog *CreateRoundPlayerLog
+	webSocket            websocket.Manager
 }
 
 type QuestionMessage struct {
@@ -34,8 +35,18 @@ type RoundStartedMessageBody struct {
 
 const roundCoefficient = 500
 
-func NewCreateRoundService(roundRepo repository.RoundRepository, createBetService *CreateBetService, webSocket websocket.Manager) *CreateRoundService {
-	return &CreateRoundService{roundRepo: roundRepo, createBetService: createBetService, webSocket: webSocket}
+func NewCreateRoundService(
+	roundRepo repository.RoundRepository,
+	createBetService *CreateBetService,
+	webSocket websocket.Manager,
+	createRoundPlayerLog *CreateRoundPlayerLog,
+) *CreateRoundService {
+	return &CreateRoundService{
+		roundRepo:            roundRepo,
+		createBetService:     createBetService,
+		createRoundPlayerLog: createRoundPlayerLog,
+		webSocket:            webSocket,
+	}
 }
 
 func (s *CreateRoundService) CreateRound(game *model.LockStockGame, players []*model.Player) error {
@@ -48,7 +59,11 @@ func (s *CreateRoundService) CreateRound(game *model.LockStockGame, players []*m
 	roundId := "round-" + uuid.New().String()
 	round := model.NewRound(roundId, &roundNumber, uint(roundCoefficient), 0, game)
 	roundPrice := roundCoefficient * int(roundNumber)
-	s.roundRepo.Save(round)
+	err := s.roundRepo.Save(round)
+	if err != nil {
+		log.Printf("Error saving round: %s, %s", round.Uid(), err.Error())
+		return err
+	}
 
 	var bets []*model.Bet
 	var roundPlayerLogs []*model.RoundPlayerLog
@@ -62,7 +77,11 @@ func (s *CreateRoundService) CreateRound(game *model.LockStockGame, players []*m
 		bet, _ := s.createBetService.CreateBet(player, betValue, round)
 		bets = append(bets, bet)
 
-		roundPlayerLog := model.NewRoundPlayerLog(player, round, uint(betValue), uint(i)+1)
+		roundPlayerLog, err := s.createRoundPlayerLog.CreateRoundPlayerLog(player, round, uint(betValue), uint(i)+1)
+		if err != nil {
+			log.Printf("Failed to create round player log: %v\n", err)
+			return err
+		}
 		roundPlayerLogs = append(roundPlayerLogs, roundPlayerLog)
 
 		player.SetBalance(newBalance)
@@ -74,7 +93,11 @@ func (s *CreateRoundService) CreateRound(game *model.LockStockGame, players []*m
 		round.SetPot(uint(pot))
 	}
 
-	s.roundRepo.Save(round)
+	err = s.roundRepo.Save(round)
+	if err != nil {
+		log.Printf("Failed to save round player log: %v\n", err)
+		return err
+	}
 
 	return s.sendRoundStartedMessage(game, round)
 }

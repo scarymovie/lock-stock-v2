@@ -23,6 +23,11 @@ type JoinRoomResponse struct {
 	UserName string `json:"userName"`
 }
 
+// NwkRawAnswer defines model for NwkRawAnswer.
+type NwkRawAnswer struct {
+	Value int `json:"value"`
+}
+
 // NwkRawBet defines model for NwkRawBet.
 type NwkRawBet struct {
 	Amount int    `json:"amount"`
@@ -44,8 +49,16 @@ type JoinRoomParams struct {
 	Authorization string `json:"Authorization"`
 }
 
+// SendAnswerParams defines parameters for SendAnswer.
+type SendAnswerParams struct {
+	Authorization string `json:"Authorization"`
+}
+
 // MakeBetJSONRequestBody defines body for MakeBet for application/json ContentType.
 type MakeBetJSONRequestBody = NwkRawBet
+
+// SendAnswerJSONRequestBody defines body for SendAnswer for application/json ContentType.
+type SendAnswerJSONRequestBody = NwkRawAnswer
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
@@ -58,6 +71,9 @@ type ServerInterface interface {
 	// Получить список ожидающих комнат
 	// (POST /list)
 	GetRooms(w http.ResponseWriter, r *http.Request)
+
+	// (POST /send/answer)
+	SendAnswer(w http.ResponseWriter, r *http.Request, params SendAnswerParams)
 	// Начать игру
 	// (POST /start/{roomId})
 	StartGame(w http.ResponseWriter, r *http.Request, roomId string)
@@ -80,6 +96,11 @@ func (_ Unimplemented) JoinRoom(w http.ResponseWriter, r *http.Request, roomId s
 // Получить список ожидающих комнат
 // (POST /list)
 func (_ Unimplemented) GetRooms(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// (POST /send/answer)
+func (_ Unimplemented) SendAnswer(w http.ResponseWriter, r *http.Request, params SendAnswerParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -203,6 +224,51 @@ func (siw *ServerInterfaceWrapper) GetRooms(w http.ResponseWriter, r *http.Reque
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetRooms(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// SendAnswer operation middleware
+func (siw *ServerInterfaceWrapper) SendAnswer(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params SendAnswerParams
+
+	headers := r.Header
+
+	// ------------- Required header parameter "Authorization" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("Authorization")]; found {
+		var Authorization string
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "Authorization", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithLocation("simple", false, "Authorization", runtime.ParamLocationHeader, valueList[0], &Authorization)
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "Authorization", Err: err})
+			return
+		}
+
+		params.Authorization = Authorization
+
+	} else {
+		err := fmt.Errorf("Header parameter Authorization is required, but not found")
+		siw.ErrorHandlerFunc(w, r, &RequiredHeaderError{ParamName: "Authorization", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SendAnswer(w, r, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -361,6 +427,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/list", wrapper.GetRooms)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/send/answer", wrapper.SendAnswer)
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/start/{roomId}", wrapper.StartGame)

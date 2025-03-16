@@ -7,6 +7,7 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"lock-stock-v2/internal/domain/game/model"
+	userModel "lock-stock-v2/internal/domain/user/model"
 	"log"
 	"time"
 )
@@ -45,4 +46,8 @@ func (repo *LockStockGameRepository) Save(game *model.LockStockGame) error {
 	}
 
 	return nil
+}
+
+func (repo *LockStockGameRepository) FindByUser(user *userModel.User) (*model.LockStockGame, error) {
+	return nil, nil
 }

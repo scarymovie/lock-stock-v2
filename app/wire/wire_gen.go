@@ -44,11 +44,13 @@ func InitializeRouter() (http.Handler, error) {
 	playerRepository := ProvidePlayerRepository(pool)
 	roundRepository := ProvideRoundRepository(pool)
 	betRepository := ProvideBetRepository(pool)
-	createBetService := service.NewCreateBetService(betRepository, manager)
-	createRoundService := service.NewCreateRoundService(roundRepository, createBetService, manager)
+	roundPlayerLogRepository := ProvideRoundPlayerLogRepository(pool)
+	createBetService := service.NewCreateBetService(betRepository, manager, roundPlayerLogRepository)
+	createRoundPlayerLog := service.NewCreateRoundPlayerLog(roundPlayerLogRepository)
+	createRoundService := service.NewCreateRoundService(roundRepository, createBetService, manager, createRoundPlayerLog)
 	createGameService := service.NewCreateGameService(roomUserRepository, gameRepository, playerRepository, createRoundService, manager)
 	startGameService := service2.NewStartGameService(roomRepository, roomUserRepository, createGameService)
-	roomHandler := ProvideRoomHandler(joinRoomService, roomRepository, userRepository, roomUserService, startGameService, createBetService, playerRepository, roundRepository, betRepository)
+	roomHandler := ProvideRoomHandler(joinRoomService, roomRepository, userRepository, roomUserService, startGameService, createBetService, playerRepository, roundRepository, betRepository, gameRepository, roundPlayerLogRepository)
 	createUserService := service3.NewCreateUser(userRepository)
 	userHandler := ProvideUserHandler(createUserService)
 	webSocketHandler := ProvideWebSocketHandler(manager)
@@ -84,6 +86,8 @@ func ProvideRoomHandler(
 	playerRepository repository3.PlayerRepository,
 	roundRepository repository3.RoundRepository,
 	betRepository repository3.BetRepository,
+	gameRepository repository3.GameRepository,
+	roundPlayerLogRepository repository3.RoundPlayerLogRepository,
 ) *room.RoomHandler {
 	return room.NewRoomHandler(
 		joinRoomService,
@@ -95,6 +99,8 @@ func ProvideRoomHandler(
 		playerRepository,
 		roundRepository,
 		betRepository,
+		gameRepository,
+		roundPlayerLogRepository,
 	)
 }
 
@@ -132,4 +138,8 @@ func ProvideRoundRepository(db *pgxpool.Pool) repository3.RoundRepository {
 
 func ProvideBetRepository(db *pgxpool.Pool) repository3.BetRepository {
 	return postgres.NewPostgresBetRepository(db)
+}
+
+func ProvideRoundPlayerLogRepository(db *pgxpool.Pool) repository3.RoundPlayerLogRepository {
+	return postgres.NewPostgresRoundPlayerLogRepository(db)
 }

@@ -39,23 +39,20 @@ func (repo *BetRepository) Save(bet *model.Bet) error {
 	INSERT INTO bets (
 		amount,
 		player_id,
-		round_id,
-		number
+		round_id
 	)
 	SELECT 
 		$1,
 		p.id,
-		$2,
-		$3
+		$2
 	FROM players p
 	JOIN users u ON p.user_id = u.id
-	WHERE u.uid = $4
+	WHERE u.uid = $3
 	`
 
 	_, err = repo.db.Exec(ctx, query,
 		bet.Amount(),
 		roundID,
-		int(bet.Number()),
 		bet.Player().User().Uid(),
 	)
 
@@ -75,7 +72,6 @@ func (repo *BetRepository) FindByRound(round *model.Round) ([]*model.Bet, error)
 	query := `
 		SELECT 
 			b.amount, 
-			b.number, 
 			p.balance, 
 			p.status, 
 			u.uid, 
@@ -91,7 +87,6 @@ func (repo *BetRepository) FindByRound(round *model.Round) ([]*model.Bet, error)
 		JOIN lock_stock_games g ON p.game_id = g.id
 		JOIN rooms r ON g.room_id = r.id
 		WHERE b.round_id = (SELECT id FROM rounds WHERE uid = $1)
-		ORDER BY b.number
 	`
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -107,7 +102,6 @@ func (repo *BetRepository) FindByRound(round *model.Round) ([]*model.Bet, error)
 	for rows.Next() {
 		var (
 			amount           int
-			number           uint
 			balance          int
 			status           model.PlayerStatus
 			userUid          string
@@ -120,7 +114,7 @@ func (repo *BetRepository) FindByRound(round *model.Round) ([]*model.Bet, error)
 		)
 
 		err := rows.Scan(
-			&amount, &number,
+			&amount,
 			&balance, &status,
 			&userUid, &username,
 			&gameUid, &actionDuration, &questionDuration,
@@ -135,7 +129,7 @@ func (repo *BetRepository) FindByRound(round *model.Round) ([]*model.Bet, error)
 		game := model.NewLockStockGame(gameUid, actionDuration, questionDuration, room)
 		player := model.NewPlayer(user, balance, status, game)
 
-		bet := model.NewBet(player, amount, round, number)
+		bet := model.NewBet(player, amount, round)
 		bets = append(bets, bet)
 	}
 
