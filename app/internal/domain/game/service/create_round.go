@@ -74,7 +74,10 @@ func (s *CreateRoundService) CreateRound(game *model.LockStockGame, players []*m
 			newBalance = player.Balance() - roundPrice
 			betValue = roundPrice
 		}
-		bet, _ := s.createBetService.CreateBet(player, betValue, round)
+		bet, err := s.createBetService.CreateBet(player, betValue, round)
+		if err != nil {
+			return err
+		}
 		bets = append(bets, bet)
 
 		roundPlayerLog, err := s.createRoundPlayerLog.CreateRoundPlayerLog(player, round, uint(betValue), uint(i)+1)

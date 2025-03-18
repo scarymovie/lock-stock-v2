@@ -1,0 +1,8 @@
+###
+POST http://localhost:8080/room/send/answer
+Content-Type: application/json
+Authorization: user-3e1a90d1-38a4-4c8c-b476-cfb94d4be7b1
+
+{
+  "value": 999
+}

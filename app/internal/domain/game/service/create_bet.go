@@ -2,6 +2,7 @@ package service
 
 import (
 	"encoding/json"
+	"errors"
 	"lock-stock-v2/internal/domain/game/model"
 	"lock-stock-v2/internal/domain/game/repository"
 	"lock-stock-v2/internal/websocket"
@@ -26,11 +27,17 @@ type NewBetBody struct {
 	MaxBet           uint   `json:"maxBet"`
 }
 
+var ErrPlayerNotFound = errors.New("player not found")
+
 func NewCreateBetService(betRepository repository.BetRepository, websocket websocket.Manager, roundPlayerLogRepository repository.RoundPlayerLogRepository) *CreateBetService {
 	return &CreateBetService{betRepository: betRepository, webSocket: websocket, roundPlayerLogRepository: roundPlayerLogRepository}
 }
 
 func (cbs *CreateBetService) CreateBet(player *model.Player, amount int, round *model.Round) (*model.Bet, error) {
+	if player == nil {
+		log.Println("Player is nil")
+		return nil, ErrPlayerNotFound
+	}
 	bet := model.NewBet(player, amount, round)
 	err := cbs.betRepository.Save(bet)
 	if err != nil {
@@ -80,10 +87,9 @@ func (cbs *CreateBetService) CreateBet(player *model.Player, amount int, round *
 	message := NewBetMessage{
 		Event: "new_bet",
 		Body: NewBetBody{
-			UserID:           player.User().Uid(),
-			Amount:           amount,
-			NextPlayerTurnID: round.PlayerTurn().User().Uid(),
-			MaxBet:           round.MaxBet(),
+			UserID: player.User().Uid(),
+			Amount: amount,
+			MaxBet: round.MaxBet(),
 		},
 	}
 

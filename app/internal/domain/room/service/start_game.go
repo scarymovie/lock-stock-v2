@@ -32,6 +32,9 @@ func (uc *StartGameService) StartGame(req StartGameRequest) error {
 		return err
 	}
 
-	uc.createGame.CreateGame(req.Room)
+	_, err := uc.createGame.CreateGame(req.Room)
+	if err != nil {
+		return err
+	}
 	return nil
 }
