@@ -13,6 +13,7 @@ type CreateBetService struct {
 	betRepository            repository.BetRepository
 	webSocket                websocket.Manager
 	roundPlayerLogRepository repository.RoundPlayerLogRepository
+	createRoundPlayerLog     *CreateRoundPlayerLog
 }
 
 type NewBetMessage struct {
@@ -30,8 +31,18 @@ type NewBetBody struct {
 var ErrPlayerNotFound = errors.New("player not found")
 var ErrRoundPlayerLogsByRoundNotFound = errors.New("round player logs by round not found")
 
-func NewCreateBetService(betRepository repository.BetRepository, websocket websocket.Manager, roundPlayerLogRepository repository.RoundPlayerLogRepository) *CreateBetService {
-	return &CreateBetService{betRepository: betRepository, webSocket: websocket, roundPlayerLogRepository: roundPlayerLogRepository}
+func NewCreateBetService(
+	betRepository repository.BetRepository,
+	websocket websocket.Manager,
+	roundPlayerLogRepository repository.RoundPlayerLogRepository,
+	createRoundPlayerLog *CreateRoundPlayerLog,
+) *CreateBetService {
+	return &CreateBetService{
+		betRepository:            betRepository,
+		webSocket:                websocket,
+		roundPlayerLogRepository: roundPlayerLogRepository,
+		createRoundPlayerLog:     createRoundPlayerLog,
+	}
 }
 
 func (cbs *CreateBetService) CreateBet(player *model.Player, amount int, round *model.Round) (*model.Bet, error) {
@@ -47,12 +58,20 @@ func (cbs *CreateBetService) CreateBet(player *model.Player, amount int, round *
 	}
 
 	roundPlayerLogs, err := cbs.roundPlayerLogRepository.FindByRound(round)
-	if err != nil || len(roundPlayerLogs) == 0 {
+	if err != nil {
 		log.Println(err)
 		return nil, ErrRoundPlayerLogsByRoundNotFound
 	}
 
-	log.Println(len(roundPlayerLogs))
+	if len(roundPlayerLogs) == 0 {
+		_, err = cbs.createRoundPlayerLog.CreateRoundPlayerLog(player, round, uint(amount), uint(0)+1)
+
+		if err != nil {
+			log.Printf("Failed to create round player log: %v\n", err)
+			return nil, err
+		}
+	}
+
 	for _, roundPlayerLog := range roundPlayerLogs {
 		if roundPlayerLog.Player().User().Uid() == player.User().Uid() {
 			roundPlayerLog.SetBetsValue(roundPlayerLog.BetsValue() + uint(amount))

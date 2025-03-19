@@ -39,13 +39,11 @@ func NewCreateRoundService(
 	roundRepo repository.RoundRepository,
 	createBetService *CreateBetService,
 	webSocket websocket.Manager,
-	createRoundPlayerLog *CreateRoundPlayerLog,
 ) *CreateRoundService {
 	return &CreateRoundService{
-		roundRepo:            roundRepo,
-		createBetService:     createBetService,
-		createRoundPlayerLog: createRoundPlayerLog,
-		webSocket:            webSocket,
+		roundRepo:        roundRepo,
+		createBetService: createBetService,
+		webSocket:        webSocket,
 	}
 }
 
@@ -66,8 +64,7 @@ func (s *CreateRoundService) CreateRound(game *model.LockStockGame, players []*m
 	}
 
 	var bets []*model.Bet
-	var roundPlayerLogs []*model.RoundPlayerLog
-	for i, player := range players {
+	for _, player := range players {
 		newBalance := 0
 		betValue := player.Balance()
 		if roundPrice < player.Balance() {
@@ -79,14 +76,6 @@ func (s *CreateRoundService) CreateRound(game *model.LockStockGame, players []*m
 			return err
 		}
 		bets = append(bets, bet)
-
-		roundPlayerLog, err := s.createRoundPlayerLog.CreateRoundPlayerLog(player, round, uint(betValue), uint(i)+1)
-		if err != nil {
-			log.Printf("Failed to create round player log: %v\n", err)
-			return err
-		}
-		roundPlayerLogs = append(roundPlayerLogs, roundPlayerLog)
-
 		player.SetBalance(newBalance)
 	}
 
