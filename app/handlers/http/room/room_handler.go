@@ -176,6 +176,7 @@ func (h *RoomHandler) SendAnswer(w http.ResponseWriter, r *http.Request, params 
 			return
 		}
 	}
+	respondWithJSON(w, http.StatusOK, "SUCCESS")
 }
 
 func (h *RoomHandler) JoinRoom(w http.ResponseWriter, r *http.Request, roomId string, params JoinRoomParams) {
