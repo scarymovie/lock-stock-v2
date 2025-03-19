@@ -81,6 +81,11 @@ func (repo *RoundRepository) FindByGame(game *gameModel.LockStockGame) ([]*gameM
 }
 
 func (repo *RoundRepository) FindLastByGame(game *gameModel.LockStockGame) (*gameModel.Round, error) {
+	if game == nil {
+		log.Println("Game is nil")
+		return nil, errors.New("game is nil")
+	}
+
 	query := `
 		SELECT 
 			r.uid, r.number, r.buy_in, r.pot,

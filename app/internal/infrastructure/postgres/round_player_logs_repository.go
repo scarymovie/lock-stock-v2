@@ -91,6 +91,8 @@ func (repo *RoundPlayerLogRepository) FindByRoundAndUser(round *model.Round, use
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
+	fmt.Println(round.Uid(), user.Uid())
+
 	query := `
 		SELECT 
 			rpl.player_id, u.uid, u.name, p.balance, p.status, 
@@ -146,23 +148,34 @@ func (repo *RoundPlayerLogRepository) Save(log *model.RoundPlayerLog) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
+	var playerID, roundID int
+	err := repo.db.QueryRow(ctx, `
+    SELECT p.id 
+    FROM players p 
+    JOIN users u ON p.user_id = u.id 
+    WHERE u.uid = $1
+`, log.Player().User().Uid()).Scan(&playerID)
+	if err != nil {
+		return fmt.Errorf("failed to fetch player ID: %w", err)
+	}
+
+	err = repo.db.QueryRow(ctx, `
+    SELECT r.id 
+    FROM rounds r 
+    WHERE r.uid = $1
+`, log.Round().Uid()).Scan(&roundID)
+	if err != nil {
+		return fmt.Errorf("failed to fetch round ID: %w", err)
+	}
+
 	query := `
-		INSERT INTO round_player_logs (player_id, round_id, number, bets_value, answer)
-		VALUES (
-			(SELECT p.user_id FROM players p JOIN users u ON p.user_id = u.id WHERE u.uid = $1),
-			(SELECT r.id FROM rounds r WHERE r.uid = $2),
-			$3, $4, $5
-		)
-		ON CONFLICT (player_id, round_id) 
-		DO UPDATE SET number = EXCLUDED.number, bets_value = EXCLUDED.bets_value, answer = EXCLUDED.answer
-	`
-	_, err := repo.db.Exec(ctx, query,
-		log.Player().User().Uid(),
-		log.Round().Uid(),
-		log.Number(),
-		log.BetsValue(),
-		log.Answer(),
-	)
+    INSERT INTO round_player_logs (player_id, round_id, number, bets_value, answer)
+    VALUES ($1, $2, $3, $4, $5)
+    ON CONFLICT (player_id, round_id) 
+    DO UPDATE SET number = EXCLUDED.number, bets_value = EXCLUDED.bets_value, answer = EXCLUDED.answer
+`
+	_, err = repo.db.Exec(ctx, query, playerID, roundID, log.Number(), log.BetsValue(), log.Answer())
+
 	if err != nil {
 		return fmt.Errorf("failed to execute query: %w", err)
 	}

@@ -149,6 +149,7 @@ func (h *RoomHandler) SendAnswer(w http.ResponseWriter, r *http.Request, params 
 	game, err := h.gameRepository.FindByUser(user)
 	if err != nil {
 		log.Printf("Game by user %s not found", user.Uid())
+		respondWithError(w, "Error sending answer", err, http.StatusInternalServerError)
 		return
 	}
 	round, err := h.roundRepository.FindLastByGame(game)
@@ -158,12 +159,12 @@ func (h *RoomHandler) SendAnswer(w http.ResponseWriter, r *http.Request, params 
 	}
 	var nwkRawAnswer NwkRawAnswer
 	if err = json.NewDecoder(r.Body).Decode(&nwkRawAnswer); err != nil {
-		respondWithError(w, "invalid request body", err, http.StatusBadRequest)
+		respondWithError(w, "invalid decoding request body", err, http.StatusBadRequest)
 		return
 	}
 	roundPlayerLog, err := h.roundPlayerLogRepository.FindByRoundAndUser(round, user)
 	if err != nil {
-		respondWithError(w, "invalid request body", err, http.StatusBadRequest)
+		respondWithError(w, "round player log not found", err, http.StatusBadRequest)
 		return
 	}
 	if nil != roundPlayerLog {
