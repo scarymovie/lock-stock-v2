@@ -14,7 +14,7 @@ func NewCreateRoundPlayerLog(roundPlayerLogRepository repository.RoundPlayerLogR
 }
 
 func (l *CreateRoundPlayerLog) CreateRoundPlayerLog(player *model.Player, round *model.Round, amount uint, position uint) (*model.RoundPlayerLog, error) {
-	roundPlayerLog := model.NewRoundPlayerLog(player, round, position, amount)
+	roundPlayerLog := model.NewRoundPlayerLog(player, round, position, amount, nil)
 	err := l.roundPlayerLogRepository.Save(roundPlayerLog)
 	if err != nil {
 		return nil, err

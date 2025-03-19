@@ -8,8 +8,8 @@ type RoundPlayerLog struct {
 	answer    *uint
 }
 
-func NewRoundPlayerLog(player *Player, round *Round, number uint, betsValue uint) *RoundPlayerLog {
-	return &RoundPlayerLog{player: player, round: round, number: number, betsValue: betsValue}
+func NewRoundPlayerLog(player *Player, round *Round, number uint, betsValue uint, answer *uint) *RoundPlayerLog {
+	return &RoundPlayerLog{player: player, round: round, number: number, betsValue: betsValue, answer: answer}
 }
 
 func (r *RoundPlayerLog) Answer() *uint {

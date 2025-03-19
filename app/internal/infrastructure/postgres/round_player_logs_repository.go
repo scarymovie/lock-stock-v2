@@ -24,13 +24,14 @@ func (repo *RoundPlayerLogRepository) FindByRound(round *model.Round) ([]*model.
 	defer cancel()
 
 	query := `
-		SELECT rpl.player_id, u.uid, u.name, p.balance, p.status, r.id, r.uid, rpl.number, rpl.bets_value, rpl.answer
+		SELECT rpl.player_id, u.uid, u.name, p.balance, p.status, r.id, r.uid, rpl.number, rpl.bets_value, rpl.answer,
+		       g.uid, g.action_duration, g.question_duration, rm.uid, rm.status
 		FROM round_player_logs rpl
-		JOIN rounds r ON rpl.round_id = r.id
-		JOIN players p ON rpl.player_id = p.user_id
-		JOIN users u ON p.user_id = u.id
-		JOIN lock_stock_games g ON r.game_id = g.id
-		JOIN rooms rm ON g.room_id = rm.id
+			JOIN rounds r ON rpl.round_id = r.id
+			JOIN players p ON rpl.player_id = p.id
+			JOIN users u ON p.user_id = u.id
+			JOIN lock_stock_games g ON r.game_id = g.id
+			JOIN rooms rm ON g.room_id = rm.id
 		WHERE r.uid = $1
 	`
 
@@ -40,52 +41,46 @@ func (repo *RoundPlayerLogRepository) FindByRound(round *model.Round) ([]*model.
 	}
 	defer rows.Close()
 
-	var logs []*model.RoundPlayerLog
+	var roundPlayerLogs []*model.RoundPlayerLog
 	for rows.Next() {
-		var playerID int
-		var userID string
-		var username string
-		var email string
-		var balance int
-		var status model.PlayerStatus
-		var roundID int
-		var roundUID string
-		var number uint
-		var betsValue uint
-		var answer *uint
-		var gameId string
-		var actionDuration string
-		var questionDuration string
-		var roomId string
+		var playerID, playerBalance, roundID int
+		var userUID, username, roundUID, gameUId, actionDuration, questionDuration, roomUid string
+		var playerStatus model.PlayerStatus
+		var roundPlayerLogNumber, roundPlayerLogBetsValue uint
+		var roundPlayerLogAnswer sql.NullInt64
 		var roomStatus roomModel.RoomStatus
 
-		if err := rows.Scan(
-			&playerID, &userID, &username, &email, &balance, &status,
-			&roundID, &roundUID, &number, &betsValue, &answer, &gameId, &actionDuration,
-			&questionDuration, &roomId, &roomStatus,
+		if err = rows.Scan(
+			&playerID, &userUID, &username, &playerBalance, &playerStatus,
+			&roundID, &roundUID, &roundPlayerLogNumber, &roundPlayerLogBetsValue, &roundPlayerLogAnswer, &gameUId, &actionDuration,
+			&questionDuration, &roomUid, &roomStatus,
 		); err != nil {
 			return nil, fmt.Errorf("failed to scan row: %w", err)
 		}
 
-		user := userModel.NewUser(userID, username)
+		var answerPtr *uint
+		if roundPlayerLogAnswer.Valid {
+			temp := uint(roundPlayerLogAnswer.Int64)
+			answerPtr = &temp
+		}
 
-		room := roomModel.NewRoom(roomId, roomStatus)
+		user := userModel.NewUser(userUID, username)
 
-		game := model.NewLockStockGame(gameId, actionDuration, questionDuration, room)
+		room := roomModel.NewRoom(roomUid, roomStatus)
 
-		player := model.NewPlayer(user, balance, status, game)
+		game := model.NewLockStockGame(gameUId, actionDuration, questionDuration, room)
 
-		log := model.NewRoundPlayerLog(player, round, number, betsValue)
-		log.SetAnswer(answer)
+		player := model.NewPlayer(user, playerBalance, playerStatus, game)
 
-		logs = append(logs, log)
+		roundPlayerLog := model.NewRoundPlayerLog(player, round, roundPlayerLogNumber, roundPlayerLogBetsValue, answerPtr)
+
+		roundPlayerLogs = append(roundPlayerLogs, roundPlayerLog)
 	}
-
 	if rows.Err() != nil {
 		return nil, fmt.Errorf("error while iterating rows: %w", rows.Err())
 	}
 
-	return logs, nil
+	return roundPlayerLogs, nil
 }
 
 func (repo *RoundPlayerLogRepository) FindByRoundAndUser(round *model.Round, user *userModel.User) (*model.RoundPlayerLog, error) {
@@ -145,7 +140,7 @@ func (repo *RoundPlayerLogRepository) FindByRoundAndUser(round *model.Round, use
 
 	player := model.NewPlayer(user, balance, status, game)
 
-	log := model.NewRoundPlayerLog(player, round, number, betsValue)
+	log := model.NewRoundPlayerLog(player, round, number, betsValue, nil)
 	log.SetAnswer(answerPtr)
 
 	return log, nil

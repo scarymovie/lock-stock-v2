@@ -28,6 +28,7 @@ type NewBetBody struct {
 }
 
 var ErrPlayerNotFound = errors.New("player not found")
+var ErrRoundPlayerLogsByRoundNotFound = errors.New("round player logs by round not found")
 
 func NewCreateBetService(betRepository repository.BetRepository, websocket websocket.Manager, roundPlayerLogRepository repository.RoundPlayerLogRepository) *CreateBetService {
 	return &CreateBetService{betRepository: betRepository, webSocket: websocket, roundPlayerLogRepository: roundPlayerLogRepository}
@@ -45,11 +46,21 @@ func (cbs *CreateBetService) CreateBet(player *model.Player, amount int, round *
 		return nil, err
 	}
 
-	roundPlayerLogs, _ := cbs.roundPlayerLogRepository.FindByRound(round)
+	roundPlayerLogs, err := cbs.roundPlayerLogRepository.FindByRound(round)
+	if err != nil || len(roundPlayerLogs) == 0 {
+		log.Println(err)
+		return nil, ErrRoundPlayerLogsByRoundNotFound
+	}
 
+	log.Println(len(roundPlayerLogs))
 	for _, roundPlayerLog := range roundPlayerLogs {
 		if roundPlayerLog.Player().User().Uid() == player.User().Uid() {
 			roundPlayerLog.SetBetsValue(roundPlayerLog.BetsValue() + uint(amount))
+			err = cbs.roundPlayerLogRepository.Save(roundPlayerLog)
+			if err != nil {
+				log.Println("Failed to save round player log", err.Error())
+				return nil, err
+			}
 		}
 	}
 

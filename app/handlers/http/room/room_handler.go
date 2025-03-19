@@ -77,18 +77,12 @@ func (h *RoomHandler) GetRooms(w http.ResponseWriter, r *http.Request) {
 
 func (h *RoomHandler) StartGame(w http.ResponseWriter, r *http.Request, roomId string) {
 	room, err := helpers.GetRoomById(h.roomRepository, roomId)
-	if room.Status() == roomModel.StatusStarted {
-		respondWithError(w, "Room already started", nil, http.StatusBadRequest)
+	if room == nil || err != nil {
+		respondWithError(w, "Error getting room", nil, http.StatusBadRequest)
 		return
 	}
-	if err != nil {
-		var roomErr *helpers.RoomNotFoundError
-		ok := errors.As(err, &roomErr)
-		if ok {
-			respondWithError(w, err.Error(), nil, roomErr.Code)
-		} else {
-			respondWithError(w, "Error getting room", err, http.StatusInternalServerError)
-		}
+	if room.Status() == roomModel.StatusStarted {
+		respondWithError(w, "Room already started", nil, http.StatusBadRequest)
 		return
 	}
 
@@ -266,6 +260,7 @@ func (h *RoomHandler) MakeBet(w http.ResponseWriter, r *http.Request, params Mak
 	_, err = h.createBet.CreateBet(player, nwkRawBet.Amount, round)
 	if err != nil {
 		log.Println("error creating bet:", err)
+		respondWithError(w, "error creating bet", err, http.StatusBadRequest)
 		return
 	}
 
