@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"lock-stock-v2/internal/domain/game/model"
@@ -99,10 +100,10 @@ func (repo *RoundPlayerLogRepository) FindByRoundAndUser(round *model.Round, use
 			r.id, r.uid, 
 			rpl.number, rpl.bets_value, rpl.answer, 
 			g.uid, g.action_duration, g.question_duration, 
-			rm.id, rm.uid, rm.status
+			rm.uid, rm.status
 		FROM round_player_logs rpl
 		JOIN rounds r ON rpl.round_id = r.id
-		JOIN players p ON rpl.player_id = p.user_id
+		JOIN players p ON rpl.player_id = p.id
 		JOIN users u ON p.user_id = u.id
 		JOIN lock_stock_games g ON r.game_id = g.id
 		JOIN rooms rm ON g.room_id = rm.id
@@ -118,7 +119,7 @@ func (repo *RoundPlayerLogRepository) FindByRoundAndUser(round *model.Round, use
 	var roundID int
 	var roundUID string
 	var number, betsValue uint
-	var answer *uint
+	var answer sql.NullInt64
 	var gameUID, actionDuration, questionDuration string
 	var roomUID string
 	var roomStatus roomModel.RoomStatus
@@ -132,6 +133,12 @@ func (repo *RoundPlayerLogRepository) FindByRoundAndUser(round *model.Round, use
 		return nil, fmt.Errorf("failed to scan row: %w", err)
 	}
 
+	var answerPtr *uint
+	if answer.Valid {
+		temp := uint(answer.Int64)
+		answerPtr = &temp
+	}
+
 	room := roomModel.NewRoom(roomUID, roomStatus)
 
 	game := model.NewLockStockGame(gameUID, actionDuration, questionDuration, room)
@@ -139,7 +146,7 @@ func (repo *RoundPlayerLogRepository) FindByRoundAndUser(round *model.Round, use
 	player := model.NewPlayer(user, balance, status, game)
 
 	log := model.NewRoundPlayerLog(player, round, number, betsValue)
-	log.SetAnswer(answer)
+	log.SetAnswer(answerPtr)
 
 	return log, nil
 }
