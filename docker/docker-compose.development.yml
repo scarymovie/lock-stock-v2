@@ -8,6 +8,7 @@ services:
       dockerfile: ../docker/images/alpine/Dockerfile.development
     container_name: lock-stock-v2-go-development
     restart: always
+    user: "1001:1001"
     depends_on:
       postgres:
         condition: service_healthy

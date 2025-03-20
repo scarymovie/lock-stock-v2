@@ -1,12 +1,14 @@
 package model
 
 type Round struct {
-	uid      string
-	number   *uint
-	question *Question
-	buyIn    uint
-	pot      uint
-	game     *LockStockGame
+	uid        string
+	number     *uint
+	question   *Question
+	buyIn      uint
+	pot        uint
+	game       *LockStockGame
+	playerTurn *Player
+	maxBet     uint
 }
 
 func NewRound(uid string, number *uint, buyIn uint, pot uint, game *LockStockGame) *Round {
@@ -64,4 +66,20 @@ func (r *Round) Game() *LockStockGame {
 
 func (r *Round) SetGame(game *LockStockGame) {
 	r.game = game
+}
+
+func (r *Round) PlayerTurn() *Player {
+	return r.playerTurn
+}
+
+func (r *Round) SetPlayerTurn(playerTurn *Player) {
+	r.playerTurn = playerTurn
+}
+
+func (r *Round) MaxBet() uint {
+	return r.maxBet
+}
+
+func (r *Round) SetMaxBet(maxBet uint) {
+	r.maxBet = maxBet
 }

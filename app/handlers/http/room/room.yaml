@@ -63,6 +63,36 @@ paths:
         "500":
           description: "Internal server error"
 
+  /send/answer:
+    post:
+      operationId: sendAnswer
+      description: Игрок отправляет ответ. Всем игрокам приходит сообщение, какой игрок дал ответ.
+      tags:
+        - Room
+      parameters:
+        - name: Authorization
+          in: header
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NwkRawAnswer"
+      responses:
+        "200":
+          description: "success"
+          content:
+            application/json:
+              schema:
+                type: string
+                enum:
+                  - SUCCESS
+        "500":
+          description: "Internal server error"
+
   /list:
     post:
       summary: Получить список ожидающих комнат
@@ -149,6 +179,15 @@ components:
       required:
         - roomId
         - amount
+
+    NwkRawAnswer:
+      type: object
+      properties:
+        value:
+          type: integer
+          minimum: 0
+      required:
+        - value
 
     JoinRoomResponse:
       type: object

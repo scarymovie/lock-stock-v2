@@ -51,6 +51,9 @@ func ProvideRoomHandler(
 	playerRepository gameRepository.PlayerRepository,
 	roundRepository gameRepository.RoundRepository,
 	betRepository gameRepository.BetRepository,
+	gameRepository gameRepository.GameRepository,
+	roundPlayerLogRepository gameRepository.RoundPlayerLogRepository,
+	webSocket externalWebSocket.Manager,
 ) *room.RoomHandler {
 	return room.NewRoomHandler(
 		joinRoomService,
@@ -62,6 +65,9 @@ func ProvideRoomHandler(
 		playerRepository,
 		roundRepository,
 		betRepository,
+		gameRepository,
+		roundPlayerLogRepository,
+		webSocket,
 	)
 }
 
@@ -101,6 +107,10 @@ func ProvideBetRepository(db *pgxpool.Pool) gameRepository.BetRepository {
 	return internalPostgresRepository.NewPostgresBetRepository(db)
 }
 
+func ProvideRoundPlayerLogRepository(db *pgxpool.Pool) gameRepository.RoundPlayerLogRepository {
+	return internalPostgresRepository.NewPostgresRoundPlayerLogRepository(db)
+}
+
 func InitializeRouter() (http.Handler, error) {
 	wire.Build(
 		// Подключение к PostgreSQL
@@ -113,6 +123,7 @@ func InitializeRouter() (http.Handler, error) {
 		ProvideGameRepository,
 		ProvidePlayerRepository,
 		ProvideRoundRepository,
+		ProvideRoundPlayerLogRepository,
 		ProvideBetRepository,
 
 		// Services
@@ -123,6 +134,7 @@ func InitializeRouter() (http.Handler, error) {
 		gameService.NewCreateGameService,
 		gameService.NewCreateBetService,
 		gameService.NewCreateRoundService,
+		gameService.NewCreateRoundPlayerLog,
 
 		// Handlers
 		ProvideWebSocketHandler,

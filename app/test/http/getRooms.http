@@ -1,6 +1,6 @@
 ###
 POST http://localhost:8080/room/list
 Content-Type: application/json
-Authorization: user-7bd86311-b466-41e8-ad38-360cee3e61fa
+Authorization: user-d947d2d8-f75c-412b-8925-b7c5fbe86557
 
 ###

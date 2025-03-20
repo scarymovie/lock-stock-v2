@@ -11,20 +11,24 @@ import (
 	"lock-stock-v2/internal/domain/room/service"
 	"lock-stock-v2/internal/domain/room_user/service"
 	userRepository "lock-stock-v2/internal/domain/user/repository"
+	"lock-stock-v2/internal/websocket"
 	"log"
 	"net/http"
 )
 
 type RoomHandler struct {
-	joinRoomService  *services.JoinRoomService
-	roomUserService  *services.RoomUserService
-	startGameService *service.StartGameService
-	roomRepository   repository.RoomRepository
-	userRepository   userRepository.UserRepository
-	createBet        *gameService.CreateBetService
-	playerRepository gameRepository.PlayerRepository
-	roundRepository  gameRepository.RoundRepository
-	betRepository    gameRepository.BetRepository
+	joinRoomService          *services.JoinRoomService
+	roomUserService          *services.RoomUserService
+	startGameService         *service.StartGameService
+	roomRepository           repository.RoomRepository
+	userRepository           userRepository.UserRepository
+	createBet                *gameService.CreateBetService
+	playerRepository         gameRepository.PlayerRepository
+	roundRepository          gameRepository.RoundRepository
+	betRepository            gameRepository.BetRepository
+	gameRepository           gameRepository.GameRepository
+	roundPlayerLogRepository gameRepository.RoundPlayerLogRepository
+	webSocket                websocket.Manager
 }
 
 func NewRoomHandler(
@@ -37,18 +41,33 @@ func NewRoomHandler(
 	playerRepository gameRepository.PlayerRepository,
 	roundRepository gameRepository.RoundRepository,
 	betRepository gameRepository.BetRepository,
+	gameRepository gameRepository.GameRepository,
+	roundPlayerLogRepository gameRepository.RoundPlayerLogRepository,
+	webSocket websocket.Manager,
 ) *RoomHandler {
 	return &RoomHandler{
-		joinRoomService:  u,
-		roomRepository:   roomRepository,
-		roomUserService:  roomUserService,
-		startGameService: startGameService,
-		userRepository:   userRepository,
-		createBet:        createBet,
-		playerRepository: playerRepository,
-		roundRepository:  roundRepository,
-		betRepository:    betRepository,
+		joinRoomService:          u,
+		roomRepository:           roomRepository,
+		roomUserService:          roomUserService,
+		startGameService:         startGameService,
+		userRepository:           userRepository,
+		createBet:                createBet,
+		playerRepository:         playerRepository,
+		roundRepository:          roundRepository,
+		betRepository:            betRepository,
+		gameRepository:           gameRepository,
+		roundPlayerLogRepository: roundPlayerLogRepository,
+		webSocket:                webSocket,
 	}
+}
+
+type NewAnswerMessage struct {
+	Event string        `json:"event"`
+	Body  NewAnswerBody `json:"body"`
+}
+
+type NewAnswerBody struct {
+	UserId string `json:"userId"`
 }
 
 func (h *RoomHandler) GetRooms(w http.ResponseWriter, r *http.Request) {
@@ -71,18 +90,12 @@ func (h *RoomHandler) GetRooms(w http.ResponseWriter, r *http.Request) {
 
 func (h *RoomHandler) StartGame(w http.ResponseWriter, r *http.Request, roomId string) {
 	room, err := helpers.GetRoomById(h.roomRepository, roomId)
-	if room.Status() == roomModel.StatusStarted {
-		respondWithError(w, "Room already started", nil, http.StatusBadRequest)
+	if room == nil || err != nil {
+		respondWithError(w, "Error getting room", nil, http.StatusBadRequest)
 		return
 	}
-	if err != nil {
-		var roomErr *helpers.RoomNotFoundError
-		ok := errors.As(err, &roomErr)
-		if ok {
-			respondWithError(w, err.Error(), nil, roomErr.Code)
-		} else {
-			respondWithError(w, "Error getting room", err, http.StatusInternalServerError)
-		}
+	if room.Status() == roomModel.StatusStarted {
+		respondWithError(w, "Room already started", nil, http.StatusBadRequest)
 		return
 	}
 
@@ -122,6 +135,65 @@ func (h *RoomHandler) StartGame(w http.ResponseWriter, r *http.Request, roomId s
 	}
 
 	respondWithJSON(w, http.StatusOK, map[string]string{"message": "Game started"})
+}
+
+func (h *RoomHandler) SendAnswer(w http.ResponseWriter, r *http.Request, params SendAnswerParams) {
+	user, err := helpers.GetUserFromString(params.Authorization, h.userRepository)
+	if err != nil {
+		var userErr *helpers.UserNotFoundError
+		ok := errors.As(err, &userErr)
+		if ok {
+			respondWithError(w, err.Error(), nil, userErr.Code)
+		} else {
+			respondWithError(w, "Error getting user", err, http.StatusInternalServerError)
+		}
+		return
+	}
+	if user == nil {
+		log.Println("User not found")
+		return
+	}
+	game, err := h.gameRepository.FindByUser(user)
+	if err != nil {
+		log.Printf("Game by user %s not found", user.Uid())
+		respondWithError(w, "Error sending answer", err, http.StatusInternalServerError)
+		return
+	}
+	round, err := h.roundRepository.FindLastByGame(game)
+	if err != nil {
+		log.Printf("Round by game %s not found", game.Uid())
+		return
+	}
+	var nwkRawAnswer NwkRawAnswer
+	if err = json.NewDecoder(r.Body).Decode(&nwkRawAnswer); err != nil {
+		respondWithError(w, "invalid decoding request body", err, http.StatusBadRequest)
+		return
+	}
+	roundPlayerLog, err := h.roundPlayerLogRepository.FindByRoundAndUser(round, user)
+	if err != nil {
+		respondWithError(w, "round player log not found", err, http.StatusBadRequest)
+		return
+	}
+	if nil != roundPlayerLog {
+		answer := uint(nwkRawAnswer.Value)
+		roundPlayerLog.SetAnswer(&answer)
+		err = h.roundPlayerLogRepository.Save(roundPlayerLog)
+		if err != nil {
+			respondWithError(w, "invalid request body", err, http.StatusBadRequest)
+			return
+		}
+		message := NewAnswerMessage{
+			Event: "new_answer",
+			Body: NewAnswerBody{
+				UserId: roundPlayerLog.Player().User().Uid(),
+			},
+		}
+
+		if err := h.sendAnswerWebSocketMessage(round.Game().Room().Uid(), message); err != nil {
+			return
+		}
+	}
+	respondWithJSON(w, http.StatusOK, "SUCCESS")
 }
 
 func (h *RoomHandler) JoinRoom(w http.ResponseWriter, r *http.Request, roomId string, params JoinRoomParams) {
@@ -208,20 +280,12 @@ func (h *RoomHandler) MakeBet(w http.ResponseWriter, r *http.Request, params Mak
 		return
 	}
 
-	bets, err := h.betRepository.FindByRound(round)
+	_, err = h.createBet.CreateBet(player, nwkRawBet.Amount, round)
 	if err != nil {
-		log.Printf("error finding bets for round %s: %v", round.Uid(), err)
+		log.Println("error creating bet:", err)
+		respondWithError(w, "error creating bet", err, http.StatusBadRequest)
 		return
 	}
-
-	lastBet := uint(0)
-	for _, bet := range bets {
-		if bet.Number() > lastBet {
-			lastBet = bet.Number()
-		}
-	}
-
-	h.createBet.CreateBet(player, nwkRawBet.Amount, round, lastBet)
 
 	respondWithJSON(w, http.StatusOK, "success")
 }
@@ -234,7 +298,11 @@ func respondWithError(w http.ResponseWriter, message string, err error, statusCo
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
-	json.NewEncoder(w).Encode(map[string]string{"error": errorMessage})
+	err = json.NewEncoder(w).Encode(map[string]string{"error": errorMessage})
+	if err != nil {
+		log.Println("Failed to encode error response:", err)
+		return
+	}
 }
 
 func respondWithJSON(w http.ResponseWriter, statusCode int, data interface{}) {
@@ -245,4 +313,16 @@ func respondWithJSON(w http.ResponseWriter, statusCode int, data interface{}) {
 		log.Printf("Ошибка при кодировании ответа: %v\n", err)
 		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
 	}
+}
+
+func (h *RoomHandler) sendAnswerWebSocketMessage(roomID string, message NewAnswerMessage) error {
+	jsonMessage, err := json.Marshal(message)
+	if err != nil {
+		log.Printf("Failed to marshal WebSocket message: %v\n", err)
+		return err
+	}
+
+	log.Println(string(jsonMessage))
+	h.webSocket.PublishToRoom(roomID, jsonMessage)
+	return nil
 }

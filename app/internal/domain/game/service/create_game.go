@@ -66,7 +66,10 @@ func (cgs *CreateGameService) CreateGame(room *roomModel.Room) (*model.LockStock
 		return nil, err
 	}
 
-	cgs.roundService.CreateRound(game, players)
+	err = cgs.roundService.CreateRound(game, players)
+	if err != nil {
+		return nil, err
+	}
 	return game, nil
 }
 
