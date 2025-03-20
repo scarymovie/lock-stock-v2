@@ -34,8 +34,13 @@ func (uc *StartGameService) StartGame(ctx context.Context, tx pgx.Tx, req StartG
 		return err
 	}
 
-	_, err := uc.createGame.CreateGame(ctx, tx, req.Room)
+	game, err := uc.createGame.CreateGame(ctx, tx, req.Room)
+	if nil == game {
+		log.Println("Error creating room")
+		return err
+	}
 	if err != nil {
+		log.Println("Failed to create game")
 		return err
 	}
 	return nil

@@ -1,8 +1,10 @@
 package service
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
+	"github.com/jackc/pgx/v5"
 	"lock-stock-v2/external/websocket"
 	"lock-stock-v2/internal/domain/game/model"
 	"lock-stock-v2/internal/domain/game/repository"
@@ -35,13 +37,13 @@ type NewAnswerBody struct {
 
 var RoundPlayerLogIsNil = errors.New("roundPlayerLog is nil")
 
-func (s *SendAnswer) SendAnswer(roundPlayerLog *model.RoundPlayerLog, answer uint) error {
+func (s *SendAnswer) SendAnswer(ctx context.Context, tx pgx.Tx, roundPlayerLog *model.RoundPlayerLog, answer uint) error {
 	if nil == roundPlayerLog {
 		log.Println("roundPlayerLog is nil")
 		return RoundPlayerLogIsNil
 	}
 	roundPlayerLog.SetAnswer(&answer)
-	err := s.roundPlayerLogRepository.Save(roundPlayerLog)
+	err := s.roundPlayerLogRepository.Save(ctx, tx, roundPlayerLog)
 	if err != nil {
 		return err
 	}

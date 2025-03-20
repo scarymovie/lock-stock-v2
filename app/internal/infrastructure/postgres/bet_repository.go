@@ -22,19 +22,9 @@ func NewPostgresBetRepository(db *pgxpool.Pool) *BetRepository {
 	return &BetRepository{db: db}
 }
 
-func (repo *BetRepository) Save(bet *model.Bet) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+var FailedOnInsertingData = errors.New("failed on inserting data")
 
-	var roundID int
-	err := repo.db.QueryRow(ctx, "SELECT id FROM rounds WHERE uid = $1", bet.Round().Uid()).Scan(&roundID)
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return fmt.Errorf("round not found for uid: %s", bet.Round().Uid())
-		}
-		return fmt.Errorf("failed to find round_id: %w", err)
-	}
-
+func (repo *BetRepository) Save(ctx context.Context, tx pgx.Tx, bet *model.Bet) error {
 	query := `
 	INSERT INTO bets (
 		amount,
@@ -44,15 +34,16 @@ func (repo *BetRepository) Save(bet *model.Bet) error {
 	SELECT 
 		$1,
 		p.id,
-		$2
+		r.id
 	FROM players p
 	JOIN users u ON p.user_id = u.id
+	JOIN rounds r ON r.uid = $2
 	WHERE u.uid = $3
 	`
 
-	_, err = repo.db.Exec(ctx, query,
+	result, err := tx.Exec(ctx, query,
 		bet.Amount(),
-		roundID,
+		bet.Round().Uid(),
 		bet.Player().User().Uid(),
 	)
 
@@ -61,8 +52,11 @@ func (repo *BetRepository) Save(bet *model.Bet) error {
 		if errors.As(err, &pgErr) {
 			log.Printf("Postgres error: %s, Code: %s, Detail: %s", pgErr.Message, pgErr.Code, pgErr.Detail)
 		}
-
 		return fmt.Errorf("failed to save bet: %w", err)
+	}
+
+	if result.RowsAffected() == 0 {
+		return FailedOnInsertingData
 	}
 
 	return nil

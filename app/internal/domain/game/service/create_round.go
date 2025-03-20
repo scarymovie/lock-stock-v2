@@ -1,8 +1,10 @@
 package service
 
 import (
+	"context"
 	"encoding/json"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"lock-stock-v2/external/websocket"
 	"lock-stock-v2/internal/domain/game/model"
 	"lock-stock-v2/internal/domain/game/repository"
@@ -47,7 +49,7 @@ func NewCreateRoundService(
 	}
 }
 
-func (s *CreateRoundService) CreateRound(game *model.LockStockGame, players []*model.Player) error {
+func (s *CreateRoundService) CreateRound(ctx context.Context, tx pgx.Tx, game *model.LockStockGame, players []*model.Player) error {
 	rounds, _ := s.roundRepo.FindByGame(game)
 	roundNumber := uint(1)
 	if len(rounds) > 0 {
@@ -57,7 +59,7 @@ func (s *CreateRoundService) CreateRound(game *model.LockStockGame, players []*m
 	roundId := "round-" + uuid.New().String()
 	round := model.NewRound(roundId, &roundNumber, uint(roundCoefficient), 0, game)
 	roundPrice := roundCoefficient * int(roundNumber)
-	err := s.roundRepo.Save(round)
+	err := s.roundRepo.Save(ctx, tx, round)
 	if err != nil {
 		log.Printf("Error saving round: %s, %s", round.Uid(), err.Error())
 		return err
@@ -71,7 +73,7 @@ func (s *CreateRoundService) CreateRound(game *model.LockStockGame, players []*m
 			newBalance = player.Balance() - roundPrice
 			betValue = roundPrice
 		}
-		bet, err := s.createBetService.CreateBet(player, betValue, round)
+		bet, err := s.createBetService.CreateBet(ctx, tx, player, betValue, round)
 		if err != nil {
 			return err
 		}
@@ -85,7 +87,7 @@ func (s *CreateRoundService) CreateRound(game *model.LockStockGame, players []*m
 		round.SetPot(uint(pot))
 	}
 
-	err = s.roundRepo.Save(round)
+	err = s.roundRepo.Save(ctx, tx, round)
 	if err != nil {
 		log.Printf("Failed to save round player log: %v\n", err)
 		return err

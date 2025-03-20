@@ -135,10 +135,12 @@ func (repo *RoundRepository) FindLastByGame(game *gameModel.LockStockGame) (*gam
 	return round, nil
 }
 
-func (repo *RoundRepository) Save(round *gameModel.Round) error {
+func (repo *RoundRepository) Save(ctx context.Context, tx pgx.Tx, round *gameModel.Round) error {
 	query := `
 		INSERT INTO rounds (uid, number, buy_in, pot, game_id)
-		VALUES ($1, $2, $3, $4, (SELECT id FROM lock_stock_games WHERE uid = $5))
+		VALUES ($1, $2, $3, $4, 
+			COALESCE((SELECT id FROM lock_stock_games WHERE uid = $5), -1)
+		)
 		ON CONFLICT (uid) DO UPDATE 
 		SET number = EXCLUDED.number, 
 			buy_in = EXCLUDED.buy_in, 
@@ -146,11 +148,8 @@ func (repo *RoundRepository) Save(round *gameModel.Round) error {
 		RETURNING id
 	`
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
 	var roundID int
-	err := repo.db.QueryRow(ctx, query,
+	err := tx.QueryRow(ctx, query,
 		round.Uid(),
 		round.Number(),
 		round.BuyIn(),
@@ -164,6 +163,10 @@ func (repo *RoundRepository) Save(round *gameModel.Round) error {
 			log.Printf("Postgres error: %s, Code: %s, Detail: %s", pgErr.Message, pgErr.Code, pgErr.Detail)
 		}
 		return fmt.Errorf("failed to save round: %w", err)
+	}
+
+	if roundID == -1 {
+		return fmt.Errorf("game with uid %s not found", round.Game().Uid())
 	}
 
 	return nil

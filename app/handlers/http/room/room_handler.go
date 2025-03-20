@@ -3,7 +3,6 @@ package room
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/jackc/pgx/v5"
 	"lock-stock-v2/external/transaction"
 	"lock-stock-v2/external/websocket"
@@ -70,6 +69,9 @@ func NewRoomHandler(
 	}
 }
 
+var RoomAlreadyStarted = errors.New("room already started")
+var RoomNotFound = errors.New("room not found")
+
 func (h *RoomHandler) GetRooms(w http.ResponseWriter, r *http.Request) {
 	rooms, err := h.roomRepository.GetPending()
 	if err != nil {
@@ -93,11 +95,17 @@ func (h *RoomHandler) StartGame(w http.ResponseWriter, r *http.Request, roomId s
 
 	err := h.transactionManager.Run(ctx, func(tx pgx.Tx) error {
 		room, err := helpers.GetRoomById(h.roomRepository, roomId)
+		if nil == room {
+			log.Printf("Room by id %s not found", roomId)
+			return RoomNotFound
+		}
 		if err != nil {
-			return fmt.Errorf("error getting room: %w", err)
+			log.Printf("error getting room: %s", err.Error())
+			return err
 		}
 		if room.Status() == roomModel.StatusStarted {
-			return fmt.Errorf("room already started")
+			log.Println("room already started")
+			return RoomAlreadyStarted
 		}
 
 		user, err := helpers.GetUserFromRequest(r)
@@ -122,49 +130,44 @@ func (h *RoomHandler) StartGame(w http.ResponseWriter, r *http.Request, roomId s
 }
 
 func (h *RoomHandler) SendAnswer(w http.ResponseWriter, r *http.Request, params SendAnswerParams) {
-	user, err := helpers.GetUserFromString(params.Authorization, h.userRepository)
-	if err != nil {
-		var userErr *helpers.UserNotFoundError
-		ok := errors.As(err, &userErr)
-		if ok {
-			respondWithError(w, err.Error(), nil, userErr.Code)
-		} else {
-			respondWithError(w, "Error getting user", err, http.StatusInternalServerError)
+	ctx := r.Context()
+
+	err := h.transactionManager.Run(ctx, func(tx pgx.Tx) error {
+		user, err := helpers.GetUserFromString(params.Authorization, h.userRepository)
+		if err != nil || nil == user {
+			log.Println("Error getting user")
+			return err
 		}
-		return
-	}
-	if user == nil {
-		log.Println("User not found")
-		return
-	}
-	game, err := h.gameRepository.FindByUser(user)
-	if err != nil {
-		log.Printf("Game by user %s not found", user.Uid())
-		respondWithError(w, "Error sending answer", err, http.StatusInternalServerError)
-		return
-	}
-	round, err := h.roundRepository.FindLastByGame(game)
-	if err != nil {
-		log.Printf("Round by game %s not found", game.Uid())
-		return
-	}
-	var nwkRawAnswer NwkRawAnswer
-	if err = json.NewDecoder(r.Body).Decode(&nwkRawAnswer); err != nil {
-		respondWithError(w, "invalid decoding request body", err, http.StatusBadRequest)
-		return
-	}
-	roundPlayerLog, err := h.roundPlayerLogRepository.FindByRoundAndUser(round, user)
-	if err != nil {
-		respondWithError(w, "round player log not found", err, http.StatusBadRequest)
-		return
-	}
-	if nil != roundPlayerLog {
-		answer := uint(nwkRawAnswer.Value)
-		err = h.sendAnswerService.SendAnswer(roundPlayerLog, answer)
+		game, err := h.gameRepository.FindByUser(user)
+		if err != nil || game == nil {
+			log.Printf("Game by user %s not found", user.Uid())
+			return err
+		}
+		round, err := h.roundRepository.FindLastByGame(game)
 		if err != nil {
-			respondWithError(w, "Failed on save answer", err, http.StatusBadRequest)
-			return
+			log.Printf("Round by game %s not found", game.Uid())
+			return err
 		}
+		var nwkRawAnswer NwkRawAnswer
+		if err = json.NewDecoder(r.Body).Decode(&nwkRawAnswer); err != nil {
+			log.Println("error decoding answer")
+			return err
+		}
+		roundPlayerLog, err := h.roundPlayerLogRepository.FindByRoundAndUser(round, user)
+		if err != nil {
+			return err
+		}
+		if nil != roundPlayerLog {
+			answer := uint(nwkRawAnswer.Value)
+			err = h.sendAnswerService.SendAnswer(ctx, tx, roundPlayerLog, answer)
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	if nil != err {
+		respondWithError(w, "Failed on send answer", err, http.StatusBadRequest)
 	}
 	respondWithJSON(w, http.StatusOK, "SUCCESS")
 }
@@ -255,7 +258,7 @@ func (h *RoomHandler) MakeBet(w http.ResponseWriter, r *http.Request, params Mak
 			return err
 		}
 
-		bet, err := h.createBet.CreateBet(player, nwkRawBet.Amount, round)
+		bet, err := h.createBet.CreateBet(ctx, tx, player, nwkRawBet.Amount, round)
 		if nil == bet {
 			log.Println("Error creating bet")
 			return err

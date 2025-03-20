@@ -33,7 +33,8 @@ func NewCreateGameService(
 		gameRepository:   gameRepository,
 		playerRepository: playerRepository,
 		roundService:     roundService,
-		webSocket:        webSocket}
+		webSocket:        webSocket,
+	}
 }
 
 func (cgs *CreateGameService) CreateGame(ctx context.Context, tx pgx.Tx, room *roomModel.Room) (*model.LockStockGame, error) {
@@ -68,7 +69,7 @@ func (cgs *CreateGameService) CreateGame(ctx context.Context, tx pgx.Tx, room *r
 		return nil, err
 	}
 
-	err = cgs.roundService.CreateRound(game, players)
+	err = cgs.roundService.CreateRound(ctx, tx, game, players)
 	if err != nil {
 		return nil, err
 	}
