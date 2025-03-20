@@ -66,6 +66,7 @@ paths:
   /send/answer:
     post:
       operationId: sendAnswer
+      description: Игрок отправляет ответ. Всем игрокам приходит сообщение, какой игрок дал ответ.
       tags:
         - Room
       parameters:
