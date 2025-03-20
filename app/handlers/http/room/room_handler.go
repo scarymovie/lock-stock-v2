@@ -64,15 +64,6 @@ func NewRoomHandler(
 	}
 }
 
-type NewAnswerMessage struct {
-	Event string        `json:"event"`
-	Body  NewAnswerBody `json:"body"`
-}
-
-type NewAnswerBody struct {
-	UserId string `json:"userId"`
-}
-
 func (h *RoomHandler) GetRooms(w http.ResponseWriter, r *http.Request) {
 	rooms, err := h.roomRepository.GetPending()
 	if err != nil {
