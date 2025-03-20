@@ -1,11 +1,13 @@
 package service
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
+	"github.com/jackc/pgx/v5"
+	"lock-stock-v2/external/websocket"
 	"lock-stock-v2/internal/domain/game/model"
 	"lock-stock-v2/internal/domain/game/repository"
-	"lock-stock-v2/internal/websocket"
 	"log"
 )
 
@@ -45,13 +47,13 @@ func NewCreateBetService(
 	}
 }
 
-func (cbs *CreateBetService) CreateBet(player *model.Player, amount int, round *model.Round) (*model.Bet, error) {
+func (cbs *CreateBetService) CreateBet(ctx context.Context, tx pgx.Tx, player *model.Player, amount int, round *model.Round) (*model.Bet, error) {
 	if player == nil {
 		log.Println("Player is nil")
 		return nil, ErrPlayerNotFound
 	}
 	bet := model.NewBet(player, amount, round)
-	err := cbs.betRepository.Save(bet)
+	err := cbs.betRepository.Save(ctx, tx, bet)
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
@@ -64,7 +66,7 @@ func (cbs *CreateBetService) CreateBet(player *model.Player, amount int, round *
 	}
 
 	if len(roundPlayerLogs) == 0 {
-		_, err = cbs.createRoundPlayerLog.CreateRoundPlayerLog(player, round, uint(amount), uint(0)+1)
+		_, err = cbs.createRoundPlayerLog.CreateRoundPlayerLog(ctx, tx, player, round, uint(amount), uint(0)+1)
 
 		if err != nil {
 			log.Printf("Failed to create round player log: %v\n", err)
@@ -75,7 +77,7 @@ func (cbs *CreateBetService) CreateBet(player *model.Player, amount int, round *
 	for _, roundPlayerLog := range roundPlayerLogs {
 		if roundPlayerLog.Player().User().Uid() == player.User().Uid() {
 			roundPlayerLog.SetBetsValue(roundPlayerLog.BetsValue() + uint(amount))
-			err = cbs.roundPlayerLogRepository.Save(roundPlayerLog)
+			err = cbs.roundPlayerLogRepository.Save(ctx, tx, roundPlayerLog)
 			if err != nil {
 				log.Println("Failed to save round player log", err.Error())
 				return nil, err

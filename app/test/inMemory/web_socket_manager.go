@@ -1,7 +1,7 @@
 package inMemory
 
 import (
-	externalWs "lock-stock-v2/internal/websocket"
+	externalWs "lock-stock-v2/external/websocket"
 	"sync"
 )
 

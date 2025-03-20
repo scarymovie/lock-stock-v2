@@ -1,6 +1,8 @@
 package service
 
 import (
+	"context"
+	"github.com/jackc/pgx/v5"
 	gameService "lock-stock-v2/internal/domain/game/service"
 	roomModel "lock-stock-v2/internal/domain/room/model"
 	"lock-stock-v2/internal/domain/room/repository"
@@ -24,16 +26,21 @@ func NewStartGameService(roomRepository repository.RoomRepository, roomUserRepos
 	return &StartGameService{roomRepository: roomRepository, roomUserRepository: roomUserRepository, createGame: createGame}
 }
 
-func (uc *StartGameService) StartGame(req StartGameRequest) error {
+func (uc *StartGameService) StartGame(ctx context.Context, tx pgx.Tx, req StartGameRequest) error {
 
 	req.Room.SetStatus(roomModel.StatusStarted)
-	if err := uc.roomRepository.UpdateRoomStatus(req.Room); err != nil {
+	if err := uc.roomRepository.UpdateRoomStatus(ctx, tx, req.Room); err != nil {
 		log.Println("Failed to update room status:", err)
 		return err
 	}
 
-	_, err := uc.createGame.CreateGame(req.Room)
+	game, err := uc.createGame.CreateGame(ctx, tx, req.Room)
+	if nil == game {
+		log.Println("Error creating room")
+		return err
+	}
 	if err != nil {
+		log.Println("Failed to create game")
 		return err
 	}
 	return nil

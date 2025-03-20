@@ -7,6 +7,8 @@ import (
 	"errors"
 	"github.com/google/wire"
 	"github.com/jackc/pgx/v5/pgxpool"
+	externalTransactionManager "lock-stock-v2/external/transaction"
+	externalWebSocket "lock-stock-v2/external/websocket"
 	"lock-stock-v2/handlers/http/room"
 	"lock-stock-v2/handlers/http/user"
 	"lock-stock-v2/handlers/http/ws"
@@ -19,8 +21,8 @@ import (
 	userRepository "lock-stock-v2/internal/domain/user/repository"
 	userService "lock-stock-v2/internal/domain/user/service"
 	internalPostgresRepository "lock-stock-v2/internal/infrastructure/postgres"
+	internalPostgresTransactionManager "lock-stock-v2/internal/infrastructure/postgres/transaction"
 	internalWebSocket "lock-stock-v2/internal/infrastructure/websocket"
-	externalWebSocket "lock-stock-v2/internal/websocket"
 	"lock-stock-v2/router"
 	"net/http"
 )
@@ -41,6 +43,10 @@ func ProvideWebSocketManager() externalWebSocket.Manager {
 	return manager
 }
 
+func ProvideTransactionManager(pool *pgxpool.Pool) externalTransactionManager.TransactionManager {
+	return internalPostgresTransactionManager.NewPostgresTransactionManager(pool)
+}
+
 func ProvideRoomHandler(
 	joinRoomService *roomUserService.JoinRoomService,
 	roomRepository roomRepository.RoomRepository,
@@ -48,12 +54,14 @@ func ProvideRoomHandler(
 	roomUserService *roomUserService.RoomUserService,
 	startGameService *roomService.StartGameService,
 	createBetService *gameService.CreateBetService,
+	sendAnswerService *gameService.SendAnswer,
 	playerRepository gameRepository.PlayerRepository,
 	roundRepository gameRepository.RoundRepository,
 	betRepository gameRepository.BetRepository,
 	gameRepository gameRepository.GameRepository,
 	roundPlayerLogRepository gameRepository.RoundPlayerLogRepository,
 	webSocket externalWebSocket.Manager,
+	transactionManager externalTransactionManager.TransactionManager,
 ) *room.RoomHandler {
 	return room.NewRoomHandler(
 		joinRoomService,
@@ -68,6 +76,8 @@ func ProvideRoomHandler(
 		gameRepository,
 		roundPlayerLogRepository,
 		webSocket,
+		sendAnswerService,
+		transactionManager,
 	)
 }
 
@@ -115,6 +125,7 @@ func InitializeRouter() (http.Handler, error) {
 	wire.Build(
 		// Подключение к PostgreSQL
 		ProvidePostgresPool,
+		ProvideTransactionManager,
 
 		// Repositories
 		ProvideRoomRepository,
@@ -135,6 +146,7 @@ func InitializeRouter() (http.Handler, error) {
 		gameService.NewCreateBetService,
 		gameService.NewCreateRoundService,
 		gameService.NewCreateRoundPlayerLog,
+		gameService.NewSendAnswer,
 
 		// Handlers
 		ProvideWebSocketHandler,

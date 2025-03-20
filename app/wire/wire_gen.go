@@ -9,6 +9,8 @@ package wire
 import (
 	"errors"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"lock-stock-v2/external/transaction"
+	"lock-stock-v2/external/websocket"
 	"lock-stock-v2/handlers/http/room"
 	"lock-stock-v2/handlers/http/user"
 	"lock-stock-v2/handlers/http/ws"
@@ -21,8 +23,8 @@ import (
 	repository2 "lock-stock-v2/internal/domain/user/repository"
 	service3 "lock-stock-v2/internal/domain/user/service"
 	"lock-stock-v2/internal/infrastructure/postgres"
+	transaction2 "lock-stock-v2/internal/infrastructure/postgres/transaction"
 	websocket2 "lock-stock-v2/internal/infrastructure/websocket"
-	"lock-stock-v2/internal/websocket"
 	"lock-stock-v2/router"
 	"net/http"
 )
@@ -50,7 +52,9 @@ func InitializeRouter() (http.Handler, error) {
 	createRoundService := service.NewCreateRoundService(roundRepository, createBetService, manager)
 	createGameService := service.NewCreateGameService(roomUserRepository, gameRepository, playerRepository, createRoundService, manager)
 	startGameService := service2.NewStartGameService(roomRepository, roomUserRepository, createGameService)
-	roomHandler := ProvideRoomHandler(joinRoomService, roomRepository, userRepository, roomUserService, startGameService, createBetService, playerRepository, roundRepository, betRepository, gameRepository, roundPlayerLogRepository, manager)
+	sendAnswer := service.NewSendAnswer(roundPlayerLogRepository, manager)
+	transactionManager := ProvideTransactionManager(pool)
+	roomHandler := ProvideRoomHandler(joinRoomService, roomRepository, userRepository, roomUserService, startGameService, createBetService, sendAnswer, playerRepository, roundRepository, betRepository, gameRepository, roundPlayerLogRepository, manager, transactionManager)
 	createUserService := service3.NewCreateUser(userRepository)
 	userHandler := ProvideUserHandler(createUserService)
 	webSocketHandler := ProvideWebSocketHandler(manager)
@@ -76,6 +80,10 @@ func ProvideWebSocketManager() websocket.Manager {
 	return manager
 }
 
+func ProvideTransactionManager(pool *pgxpool.Pool) transaction.TransactionManager {
+	return transaction2.NewPostgresTransactionManager(pool)
+}
+
 func ProvideRoomHandler(
 	joinRoomService *services.JoinRoomService,
 	roomRepository repository.RoomRepository,
@@ -83,12 +91,14 @@ func ProvideRoomHandler(
 	roomUserService *services.RoomUserService,
 	startGameService *service2.StartGameService,
 	createBetService *service.CreateBetService,
+	sendAnswerService *service.SendAnswer,
 	playerRepository repository3.PlayerRepository,
 	roundRepository repository3.RoundRepository,
 	betRepository repository3.BetRepository,
 	gameRepository repository3.GameRepository,
 	roundPlayerLogRepository repository3.RoundPlayerLogRepository,
 	webSocket websocket.Manager,
+	transactionManager transaction.TransactionManager,
 ) *room.RoomHandler {
 	return room.NewRoomHandler(
 		joinRoomService,
@@ -103,6 +113,8 @@ func ProvideRoomHandler(
 		gameRepository,
 		roundPlayerLogRepository,
 		webSocket,
+		sendAnswerService,
+		transactionManager,
 	)
 }
 

@@ -2,7 +2,7 @@ package ws
 
 import (
 	gorillaWs "github.com/gorilla/websocket"
-	"lock-stock-v2/internal/websocket"
+	"lock-stock-v2/external/websocket"
 	"log"
 	"net/http"
 )

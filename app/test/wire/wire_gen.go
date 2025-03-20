@@ -8,12 +8,12 @@ package wire
 
 import (
 	"github.com/google/wire"
+	"lock-stock-v2/external/websocket"
 	repository3 "lock-stock-v2/internal/domain/room/repository"
 	"lock-stock-v2/internal/domain/room_user/repository"
 	"lock-stock-v2/internal/domain/room_user/service"
 	repository2 "lock-stock-v2/internal/domain/user/repository"
 	"lock-stock-v2/internal/domain/user/service"
-	"lock-stock-v2/internal/websocket"
 	"lock-stock-v2/test/inMemory"
 )
 

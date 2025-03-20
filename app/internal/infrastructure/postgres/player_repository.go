@@ -22,7 +22,7 @@ func NewPostgresPlayerRepository(db *pgxpool.Pool) *PlayerRepository {
 	return &PlayerRepository{db: db}
 }
 
-func (repo *PlayerRepository) Save(player *model.Player) error {
+func (repo *PlayerRepository) Save(ctx context.Context, tx pgx.Tx, player *model.Player) error {
 	query := `
 		INSERT INTO players (balance, status, user_id, game_id)
 		VALUES (
@@ -36,7 +36,7 @@ func (repo *PlayerRepository) Save(player *model.Player) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	_, err := repo.db.Exec(ctx, query,
+	_, err := tx.Exec(ctx, query,
 		player.Balance(),
 		player.Status(),
 		player.User().Uid(),

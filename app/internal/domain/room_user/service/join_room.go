@@ -2,11 +2,11 @@ package services
 
 import (
 	"encoding/json"
+	internalWs "lock-stock-v2/external/websocket"
 	roomModel "lock-stock-v2/internal/domain/room/model"
 	roomUserModel "lock-stock-v2/internal/domain/room_user/model"
 	"lock-stock-v2/internal/domain/room_user/repository"
 	userModel "lock-stock-v2/internal/domain/user/model"
-	internalWs "lock-stock-v2/internal/websocket"
 	"log"
 )
 

@@ -1,14 +1,16 @@
 package service
 
 import (
+	"context"
 	"encoding/json"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
+	"lock-stock-v2/external/websocket"
 	"lock-stock-v2/internal/domain/game/model"
 	"lock-stock-v2/internal/domain/game/repository"
 	roomModel "lock-stock-v2/internal/domain/room/model"
 	roomUserRepository "lock-stock-v2/internal/domain/room_user/repository"
 	userModel "lock-stock-v2/internal/domain/user/model"
-	"lock-stock-v2/internal/websocket"
 	"log"
 )
 
@@ -31,10 +33,11 @@ func NewCreateGameService(
 		gameRepository:   gameRepository,
 		playerRepository: playerRepository,
 		roundService:     roundService,
-		webSocket:        webSocket}
+		webSocket:        webSocket,
+	}
 }
 
-func (cgs *CreateGameService) CreateGame(room *roomModel.Room) (*model.LockStockGame, error) {
+func (cgs *CreateGameService) CreateGame(ctx context.Context, tx pgx.Tx, room *roomModel.Room) (*model.LockStockGame, error) {
 
 	roomUsers, err := cgs.roomUserRepo.FindByRoom(room)
 	if err != nil {
@@ -42,8 +45,8 @@ func (cgs *CreateGameService) CreateGame(room *roomModel.Room) (*model.LockStock
 		return nil, err
 	}
 
-	game := model.NewLockStockGame("game"+uuid.New().String(), "30", "30", room)
-	err = cgs.gameRepository.Save(game)
+	game := model.NewLockStockGame("game-"+uuid.New().String(), "30", "30", room)
+	err = cgs.gameRepository.Save(ctx, tx, game)
 	if err != nil {
 		log.Println("Error saving game:", err)
 		return nil, err
@@ -54,7 +57,7 @@ func (cgs *CreateGameService) CreateGame(room *roomModel.Room) (*model.LockStock
 		playersFromRoomUsers = append(playersFromRoomUsers, roomUser.User())
 	}
 
-	players, playersData, err := cgs.createPlayers(playersFromRoomUsers, game)
+	players, playersData, err := cgs.createPlayers(ctx, tx, playersFromRoomUsers, game)
 	if err != nil {
 		log.Println("Error creating players:", err)
 		return nil, err
@@ -66,20 +69,20 @@ func (cgs *CreateGameService) CreateGame(room *roomModel.Room) (*model.LockStock
 		return nil, err
 	}
 
-	err = cgs.roundService.CreateRound(game, players)
+	err = cgs.roundService.CreateRound(ctx, tx, game, players)
 	if err != nil {
 		return nil, err
 	}
 	return game, nil
 }
 
-func (cgs *CreateGameService) createPlayers(users []*userModel.User, game *model.LockStockGame) ([]*model.Player, []map[string]interface{}, error) {
+func (cgs *CreateGameService) createPlayers(ctx context.Context, tx pgx.Tx, users []*userModel.User, game *model.LockStockGame) ([]*model.Player, []map[string]interface{}, error) {
 	var players []*model.Player
 	var playersData []map[string]interface{}
 
 	for _, user := range users {
 		player := model.NewPlayer(user, 25000, model.StatusPlaying, game)
-		err := cgs.playerRepository.Save(player)
+		err := cgs.playerRepository.Save(ctx, tx, player)
 		if err != nil {
 			log.Println("Error saving player:", err)
 			return nil, nil, err
