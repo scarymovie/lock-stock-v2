@@ -50,7 +50,7 @@ func InitializeRouter() (http.Handler, error) {
 	createRoundService := service.NewCreateRoundService(roundRepository, createBetService, manager)
 	createGameService := service.NewCreateGameService(roomUserRepository, gameRepository, playerRepository, createRoundService, manager)
 	startGameService := service2.NewStartGameService(roomRepository, roomUserRepository, createGameService)
-	roomHandler := ProvideRoomHandler(joinRoomService, roomRepository, userRepository, roomUserService, startGameService, createBetService, playerRepository, roundRepository, betRepository, gameRepository, roundPlayerLogRepository)
+	roomHandler := ProvideRoomHandler(joinRoomService, roomRepository, userRepository, roomUserService, startGameService, createBetService, playerRepository, roundRepository, betRepository, gameRepository, roundPlayerLogRepository, manager)
 	createUserService := service3.NewCreateUser(userRepository)
 	userHandler := ProvideUserHandler(createUserService)
 	webSocketHandler := ProvideWebSocketHandler(manager)
@@ -88,6 +88,7 @@ func ProvideRoomHandler(
 	betRepository repository3.BetRepository,
 	gameRepository repository3.GameRepository,
 	roundPlayerLogRepository repository3.RoundPlayerLogRepository,
+	webSocket websocket.Manager,
 ) *room.RoomHandler {
 	return room.NewRoomHandler(
 		joinRoomService,
@@ -101,6 +102,7 @@ func ProvideRoomHandler(
 		betRepository,
 		gameRepository,
 		roundPlayerLogRepository,
+		webSocket,
 	)
 }
 

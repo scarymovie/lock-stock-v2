@@ -53,6 +53,7 @@ func ProvideRoomHandler(
 	betRepository gameRepository.BetRepository,
 	gameRepository gameRepository.GameRepository,
 	roundPlayerLogRepository gameRepository.RoundPlayerLogRepository,
+	webSocket externalWebSocket.Manager,
 ) *room.RoomHandler {
 	return room.NewRoomHandler(
 		joinRoomService,
@@ -66,6 +67,7 @@ func ProvideRoomHandler(
 		betRepository,
 		gameRepository,
 		roundPlayerLogRepository,
+		webSocket,
 	)
 }
 
