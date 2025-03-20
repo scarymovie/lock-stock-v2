@@ -45,7 +45,7 @@ func (cgs *CreateGameService) CreateGame(ctx context.Context, tx pgx.Tx, room *r
 		return nil, err
 	}
 
-	game := model.NewLockStockGame("game"+uuid.New().String(), "30", "30", room)
+	game := model.NewLockStockGame("game-"+uuid.New().String(), "30", "30", room)
 	err = cgs.gameRepository.Save(ctx, tx, game)
 	if err != nil {
 		log.Println("Error saving game:", err)
