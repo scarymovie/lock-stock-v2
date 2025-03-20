@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/jackc/pgx/v5"
 	"lock-stock-v2/internal/domain/room/model"
 	"time"
 
@@ -85,7 +86,7 @@ func (repo *RoomRepository) Save(room *model.Room) error {
 	return nil
 }
 
-func (repo *RoomRepository) UpdateRoomStatus(room *model.Room) error {
+func (repo *RoomRepository) UpdateRoomStatus(ctx context.Context, tx pgx.Tx, room *model.Room) error {
 	query := `
 		UPDATE rooms
 		SET status = $1
@@ -95,7 +96,7 @@ func (repo *RoomRepository) UpdateRoomStatus(room *model.Room) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	_, err := repo.db.Exec(ctx, query, room.Status(), room.Uid())
+	_, err := tx.Exec(ctx, query, room.Status(), room.Uid())
 	if err != nil {
 		return fmt.Errorf("failed to update room: %w", err)
 	}

@@ -3,6 +3,10 @@ package room
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
+	"github.com/jackc/pgx/v5"
+	"lock-stock-v2/external/transaction"
+	"lock-stock-v2/external/websocket"
 	"lock-stock-v2/handlers/http/helpers"
 	gameRepository "lock-stock-v2/internal/domain/game/repository"
 	gameService "lock-stock-v2/internal/domain/game/service"
@@ -11,7 +15,6 @@ import (
 	"lock-stock-v2/internal/domain/room/service"
 	"lock-stock-v2/internal/domain/room_user/service"
 	userRepository "lock-stock-v2/internal/domain/user/repository"
-	"lock-stock-v2/internal/websocket"
 	"log"
 	"net/http"
 )
@@ -30,6 +33,7 @@ type RoomHandler struct {
 	gameRepository           gameRepository.GameRepository
 	roundPlayerLogRepository gameRepository.RoundPlayerLogRepository
 	webSocket                websocket.Manager
+	transactionManager       transaction.TransactionManager
 }
 
 func NewRoomHandler(
@@ -46,6 +50,7 @@ func NewRoomHandler(
 	roundPlayerLogRepository gameRepository.RoundPlayerLogRepository,
 	webSocket websocket.Manager,
 	sendAnswerService *gameService.SendAnswer,
+	transactionManager transaction.TransactionManager,
 ) *RoomHandler {
 	return &RoomHandler{
 		joinRoomService:          u,
@@ -61,6 +66,7 @@ func NewRoomHandler(
 		roundPlayerLogRepository: roundPlayerLogRepository,
 		webSocket:                webSocket,
 		sendAnswerService:        sendAnswerService,
+		transactionManager:       transactionManager,
 	}
 }
 
@@ -83,47 +89,31 @@ func (h *RoomHandler) GetRooms(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *RoomHandler) StartGame(w http.ResponseWriter, r *http.Request, roomId string) {
-	room, err := helpers.GetRoomById(h.roomRepository, roomId)
-	if room == nil || err != nil {
-		respondWithError(w, "Error getting room", nil, http.StatusBadRequest)
-		return
-	}
-	if room.Status() == roomModel.StatusStarted {
-		respondWithError(w, "Room already started", nil, http.StatusBadRequest)
-		return
-	}
+	ctx := r.Context()
 
-	user, err := helpers.GetUserFromRequest(r)
-	if err != nil {
-		var userErr *helpers.UserNotFoundError
-		ok := errors.As(err, &userErr)
-		if ok {
-			respondWithError(w, err.Error(), nil, userErr.Code)
-		} else {
-			respondWithError(w, "Error getting user", err, http.StatusInternalServerError)
+	err := h.transactionManager.Run(ctx, func(tx pgx.Tx) error {
+		room, err := helpers.GetRoomById(h.roomRepository, roomId)
+		if err != nil {
+			return fmt.Errorf("error getting room: %w", err)
 		}
-		return
-	}
+		if room.Status() == roomModel.StatusStarted {
+			return fmt.Errorf("room already started")
+		}
 
-	roomUsers, err := h.roomUserService.GetUsersByRoom(room)
+		user, err := helpers.GetUserFromRequest(r)
+		if err != nil {
+			return err
+		}
+
+		req := service.StartGameRequest{
+			Room: room,
+			User: user,
+		}
+
+		return h.startGameService.StartGame(ctx, tx, req)
+	})
+
 	if err != nil {
-		http.Error(w, "Failed to get users in room: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	isUserInRoom := h.roomUserService.IsUserInRoom(roomUsers, user)
-
-	if !isUserInRoom {
-		http.Error(w, "RoomUser is not in the room", http.StatusForbidden)
-		return
-	}
-
-	req := service.StartGameRequest{
-		Room: room,
-		User: user,
-	}
-
-	if err := h.startGameService.StartGame(req); err != nil {
 		respondWithError(w, "Failed to start game", err, http.StatusInternalServerError)
 		return
 	}
@@ -229,41 +219,50 @@ func (h *RoomHandler) JoinRoom(w http.ResponseWriter, r *http.Request, roomId st
 }
 
 func (h *RoomHandler) MakeBet(w http.ResponseWriter, r *http.Request, params MakeBetParams) {
-	user, err := helpers.GetUserFromString(params.Authorization, h.userRepository)
-	if err != nil {
-		var userErr *helpers.UserNotFoundError
-		ok := errors.As(err, &userErr)
-		if ok {
-			respondWithError(w, err.Error(), nil, userErr.Code)
-		} else {
-			respondWithError(w, "Error getting user", err, http.StatusInternalServerError)
+	ctx := r.Context()
+	err := h.transactionManager.Run(ctx, func(tx pgx.Tx) error {
+		user, err := helpers.GetUserFromString(params.Authorization, h.userRepository)
+		if err != nil {
+			var userErr *helpers.UserNotFoundError
+			ok := errors.As(err, &userErr)
+			if ok {
+				respondWithError(w, err.Error(), nil, userErr.Code)
+			} else {
+				respondWithError(w, "Error getting user", err, http.StatusInternalServerError)
+			}
+			return err
 		}
-		return
-	}
-	var nwkRawBet NwkRawBet
-	if err := json.NewDecoder(r.Body).Decode(&nwkRawBet); err != nil {
-		respondWithError(w, "invalid request body", err, http.StatusBadRequest)
-		return
-	}
-	room, err := h.roomRepository.FindById(nwkRawBet.RoomId)
-	if err != nil {
-		log.Printf("error finding room by ID %s: %v", nwkRawBet.RoomId, err)
-		return
-	}
+		var nwkRawBet NwkRawBet
+		if err := json.NewDecoder(r.Body).Decode(&nwkRawBet); err != nil {
+			respondWithError(w, "invalid request body", err, http.StatusBadRequest)
+			return err
+		}
+		room, err := h.roomRepository.FindById(nwkRawBet.RoomId)
+		if err != nil {
+			log.Printf("error finding room by ID %s: %v", nwkRawBet.RoomId, err)
+			return err
+		}
 
-	player, err := h.playerRepository.FindByUserAndRoom(user, room)
-	if err != nil {
-		log.Printf("error finding player for user %s in room %s: %v", user.Uid(), room.Uid(), err)
-		return
-	}
+		player, err := h.playerRepository.FindByUserAndRoom(user, room)
+		if err != nil {
+			log.Printf("error finding player for user %s in room %s: %v", user.Uid(), room.Uid(), err)
+			return err
+		}
 
-	round, err := h.roundRepository.FindLastByGame(player.Game())
-	if err != nil {
-		log.Printf("error finding last round for game %s: %v", player.Game().Uid(), err)
-		return
-	}
+		round, err := h.roundRepository.FindLastByGame(player.Game())
+		if err != nil {
+			log.Printf("error finding last round for game %s: %v", player.Game().Uid(), err)
+			return err
+		}
 
-	_, err = h.createBet.CreateBet(player, nwkRawBet.Amount, round)
+		bet, err := h.createBet.CreateBet(player, nwkRawBet.Amount, round)
+		if nil == bet {
+			log.Println("Error creating bet")
+			return err
+		}
+		return nil
+	})
+
 	if err != nil {
 		log.Println("error creating bet:", err)
 		respondWithError(w, "error creating bet", err, http.StatusBadRequest)

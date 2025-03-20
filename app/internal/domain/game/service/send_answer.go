@@ -3,9 +3,9 @@ package service
 import (
 	"encoding/json"
 	"errors"
+	"lock-stock-v2/external/websocket"
 	"lock-stock-v2/internal/domain/game/model"
 	"lock-stock-v2/internal/domain/game/repository"
-	"lock-stock-v2/internal/websocket"
 	"log"
 )
 

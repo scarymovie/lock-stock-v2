@@ -22,7 +22,7 @@ func NewPostgresGameRepository(db *pgxpool.Pool) *LockStockGameRepository {
 	return &LockStockGameRepository{db: db}
 }
 
-func (repo *LockStockGameRepository) Save(game *model.LockStockGame) error {
+func (repo *LockStockGameRepository) Save(ctx context.Context, tx pgx.Tx, game *model.LockStockGame) error {
 	query := `
 		INSERT INTO lock_stock_games (uid, action_duration, question_duration, room_id, created_at)
 		VALUES ($1, $2, $3, (SELECT id FROM rooms WHERE uid = $4), $5)
@@ -31,7 +31,7 @@ func (repo *LockStockGameRepository) Save(game *model.LockStockGame) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	_, err := repo.db.Exec(ctx, query,
+	_, err := tx.Exec(ctx, query,
 		game.Uid(),
 		game.ActionDuration(),
 		game.QuestionDuration(),

@@ -5,12 +5,12 @@ package wire
 
 import (
 	"github.com/google/wire"
+	externalWs "lock-stock-v2/external/websocket"
 	"lock-stock-v2/internal/domain/room/repository"
 	roomUserRepository "lock-stock-v2/internal/domain/room_user/repository"
 	roomUserService "lock-stock-v2/internal/domain/room_user/service"
 	userRepository "lock-stock-v2/internal/domain/user/repository"
 	userService "lock-stock-v2/internal/domain/user/service"
-	externalWs "lock-stock-v2/internal/websocket"
 	"lock-stock-v2/test/inMemory"
 )
 

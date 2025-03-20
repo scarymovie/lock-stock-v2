@@ -1,7 +1,7 @@
 package websocket
 
 import (
-	"lock-stock-v2/internal/websocket"
+	"lock-stock-v2/external/websocket"
 	"log"
 	"sync"
 )
