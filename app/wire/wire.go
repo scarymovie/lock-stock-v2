@@ -48,6 +48,7 @@ func ProvideRoomHandler(
 	roomUserService *roomUserService.RoomUserService,
 	startGameService *roomService.StartGameService,
 	createBetService *gameService.CreateBetService,
+	sendAnswerService *gameService.SendAnswer,
 	playerRepository gameRepository.PlayerRepository,
 	roundRepository gameRepository.RoundRepository,
 	betRepository gameRepository.BetRepository,
@@ -68,6 +69,7 @@ func ProvideRoomHandler(
 		gameRepository,
 		roundPlayerLogRepository,
 		webSocket,
+		sendAnswerService,
 	)
 }
 
@@ -135,6 +137,7 @@ func InitializeRouter() (http.Handler, error) {
 		gameService.NewCreateBetService,
 		gameService.NewCreateRoundService,
 		gameService.NewCreateRoundPlayerLog,
+		gameService.NewSendAnswer,
 
 		// Handlers
 		ProvideWebSocketHandler,

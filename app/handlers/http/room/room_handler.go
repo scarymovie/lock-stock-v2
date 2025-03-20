@@ -20,6 +20,7 @@ type RoomHandler struct {
 	joinRoomService          *services.JoinRoomService
 	roomUserService          *services.RoomUserService
 	startGameService         *service.StartGameService
+	sendAnswerService        *gameService.SendAnswer
 	roomRepository           repository.RoomRepository
 	userRepository           userRepository.UserRepository
 	createBet                *gameService.CreateBetService
@@ -44,6 +45,7 @@ func NewRoomHandler(
 	gameRepository gameRepository.GameRepository,
 	roundPlayerLogRepository gameRepository.RoundPlayerLogRepository,
 	webSocket websocket.Manager,
+	sendAnswerService *gameService.SendAnswer,
 ) *RoomHandler {
 	return &RoomHandler{
 		joinRoomService:          u,
@@ -58,6 +60,7 @@ func NewRoomHandler(
 		gameRepository:           gameRepository,
 		roundPlayerLogRepository: roundPlayerLogRepository,
 		webSocket:                webSocket,
+		sendAnswerService:        sendAnswerService,
 	}
 }
 
@@ -176,20 +179,9 @@ func (h *RoomHandler) SendAnswer(w http.ResponseWriter, r *http.Request, params 
 	}
 	if nil != roundPlayerLog {
 		answer := uint(nwkRawAnswer.Value)
-		roundPlayerLog.SetAnswer(&answer)
-		err = h.roundPlayerLogRepository.Save(roundPlayerLog)
+		err = h.sendAnswerService.SendAnswer(roundPlayerLog, answer)
 		if err != nil {
-			respondWithError(w, "invalid request body", err, http.StatusBadRequest)
-			return
-		}
-		message := NewAnswerMessage{
-			Event: "new_answer",
-			Body: NewAnswerBody{
-				UserId: roundPlayerLog.Player().User().Uid(),
-			},
-		}
-
-		if err := h.sendAnswerWebSocketMessage(round.Game().Room().Uid(), message); err != nil {
+			respondWithError(w, "Failed on save answer", err, http.StatusBadRequest)
 			return
 		}
 	}
@@ -313,16 +305,4 @@ func respondWithJSON(w http.ResponseWriter, statusCode int, data interface{}) {
 		log.Printf("Ошибка при кодировании ответа: %v\n", err)
 		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
 	}
-}
-
-func (h *RoomHandler) sendAnswerWebSocketMessage(roomID string, message NewAnswerMessage) error {
-	jsonMessage, err := json.Marshal(message)
-	if err != nil {
-		log.Printf("Failed to marshal WebSocket message: %v\n", err)
-		return err
-	}
-
-	log.Println(string(jsonMessage))
-	h.webSocket.PublishToRoom(roomID, jsonMessage)
-	return nil
 }
