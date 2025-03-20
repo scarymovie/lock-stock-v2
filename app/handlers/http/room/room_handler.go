@@ -3,6 +3,7 @@ package room
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/jackc/pgx/v5"
 	"lock-stock-v2/external/transaction"
 	"lock-stock-v2/external/websocket"
@@ -12,6 +13,7 @@ import (
 	roomModel "lock-stock-v2/internal/domain/room/model"
 	"lock-stock-v2/internal/domain/room/repository"
 	"lock-stock-v2/internal/domain/room/service"
+	"lock-stock-v2/internal/domain/room_user/model"
 	"lock-stock-v2/internal/domain/room_user/service"
 	userRepository "lock-stock-v2/internal/domain/user/repository"
 	"log"
@@ -168,44 +170,58 @@ func (h *RoomHandler) SendAnswer(w http.ResponseWriter, r *http.Request, params 
 	})
 	if nil != err {
 		respondWithError(w, "Failed on send answer", err, http.StatusBadRequest)
+		return
 	}
 	respondWithJSON(w, http.StatusOK, "SUCCESS")
 }
 
 func (h *RoomHandler) JoinRoom(w http.ResponseWriter, r *http.Request, roomId string, params JoinRoomParams) {
-	room, err := helpers.GetRoomById(h.roomRepository, roomId)
-	if err != nil {
-		var roomErr *helpers.RoomNotFoundError
-		ok := errors.As(err, &roomErr)
-		if ok {
-			respondWithError(w, err.Error(), nil, roomErr.Code)
-		} else {
-			respondWithError(w, "Error getting room", err, http.StatusInternalServerError)
+	ctx := r.Context()
+
+	var roomUsers []*model.RoomUser
+
+	err := h.transactionManager.Run(ctx, func(tx pgx.Tx) error {
+		room, err := helpers.GetRoomById(h.roomRepository, roomId)
+		if err != nil {
+			log.Printf("Error fetching room (ID: %s): %v", roomId, err)
+			return fmt.Errorf("failed to fetch room: %w", err)
 		}
-		return
-	}
-
-	user, err := helpers.GetUserFromString(params.Authorization, h.userRepository)
-	if err != nil {
-		var userErr *helpers.UserNotFoundError
-		ok := errors.As(err, &userErr)
-		if ok {
-			respondWithError(w, err.Error(), nil, userErr.Code)
-		} else {
-			respondWithError(w, "Error getting user", err, http.StatusInternalServerError)
+		if room == nil {
+			log.Printf("Room not found (ID: %s)", roomId)
+			return errors.New("room not found")
 		}
-		return
-	}
 
-	domainReq := services.JoinRoomRequest{User: user, Room: room}
-	if err := h.joinRoomService.JoinRoom(domainReq); err != nil {
-		respondWithError(w, "Failed to join room", err, http.StatusInternalServerError)
-		return
-	}
+		user, err := helpers.GetUserFromString(params.Authorization, h.userRepository)
+		if err != nil {
+			log.Printf("Error fetching user (Token: %s): %v", params.Authorization, err)
+			return fmt.Errorf("failed to fetch user: %w", err)
+		}
+		if user == nil {
+			log.Printf("User not found (Token: %s)", params.Authorization)
+			return errors.New("user not found")
+		}
 
-	roomUsers, err := h.roomUserService.GetUsersByRoom(room)
+		domainReq := services.JoinRoomRequest{User: user, Room: room}
+		if err = h.joinRoomService.JoinRoom(domainReq); err != nil {
+			log.Printf("Error joining room (Room ID: %s, User ID: %s): %v", room.Uid(), user.Uid(), err)
+			return fmt.Errorf("failed to join room: %w", err)
+		}
+
+		roomUsers, err = h.roomUserService.GetUsersByRoom(room)
+		if err != nil {
+			log.Printf("Error fetching room users (Room ID: %s): %v", room.Uid(), err)
+			return fmt.Errorf("failed to fetch room users: %w", err)
+		}
+		if len(roomUsers) == 0 {
+			log.Printf("No users found in room (Room ID: %s)", room.Uid())
+			return errors.New("no users found in room")
+		}
+
+		return nil
+	})
+
 	if err != nil {
-		respondWithError(w, "Failed to get users in room", err, http.StatusInternalServerError)
+		respondWithError(w, "Failed to get room users", err, http.StatusInternalServerError)
 		return
 	}
 
