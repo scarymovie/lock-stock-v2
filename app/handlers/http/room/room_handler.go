@@ -77,16 +77,19 @@ var RoomNotFound = errors.New("room not found")
 func (h *RoomHandler) GetRooms(w http.ResponseWriter, r *http.Request) {
 	rooms, err := h.roomRepository.GetPending()
 	if err != nil {
+		log.Printf("Error fetching pending rooms: %v\n", err)
 		respondWithError(w, "Failed to get rooms", err, http.StatusInternalServerError)
 		return
 	}
-	responseData := make([]RoomResponse, 0)
 
-	for _, room := range rooms {
-		var responseRoomUid = room.Uid()
-		responseData = append(responseData, RoomResponse{
-			RoomUid: &responseRoomUid,
-		})
+	if len(rooms) == 0 {
+		respondWithJSON(w, http.StatusOK, []RoomResponse{})
+		return
+	}
+
+	responseData := make([]RoomResponse, len(rooms))
+	for i, room := range rooms {
+		responseData[i] = RoomResponse{RoomUid: ptr(room.Uid())}
 	}
 
 	respondWithJSON(w, http.StatusOK, responseData)
@@ -97,21 +100,23 @@ func (h *RoomHandler) StartGame(w http.ResponseWriter, r *http.Request, roomId s
 
 	err := h.transactionManager.Run(ctx, func(tx pgx.Tx) error {
 		room, err := helpers.GetRoomById(h.roomRepository, roomId)
-		if nil == room {
-			log.Printf("Room by id %s not found", roomId)
-			return RoomNotFound
-		}
 		if err != nil {
-			log.Printf("error getting room: %s", err.Error())
+			log.Printf("Error getting room %s: %v", roomId, err)
 			return err
 		}
+		if room == nil {
+			log.Println("Room not found")
+			return RoomNotFound
+		}
+
 		if room.Status() == roomModel.StatusStarted {
-			log.Println("room already started")
+			log.Printf("Room %s already started", roomId)
 			return RoomAlreadyStarted
 		}
 
 		user, err := helpers.GetUserFromRequest(r)
 		if err != nil {
+			log.Printf("Failed to get user from request: %v", err)
 			return err
 		}
 
@@ -120,7 +125,12 @@ func (h *RoomHandler) StartGame(w http.ResponseWriter, r *http.Request, roomId s
 			User: user,
 		}
 
-		return h.startGameService.StartGame(ctx, tx, req)
+		if err := h.startGameService.StartGame(ctx, tx, req); err != nil {
+			log.Printf("Failed to start game for room %s: %v", roomId, err)
+			return err
+		}
+
+		return nil
 	})
 
 	if err != nil {
@@ -314,4 +324,8 @@ func respondWithJSON(w http.ResponseWriter, statusCode int, data interface{}) {
 		log.Printf("Ошибка при кодировании ответа: %v\n", err)
 		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
 	}
+}
+
+func ptr(s string) *string {
+	return &s
 }
