@@ -12,6 +12,10 @@ init: permissions up migrate-up
 permissions:
 	sudo chown -R $(shell whoami):$(shell id -g) app/migrations
 
+.TEST: test
+test:
+	$(DOCKER_COMPOSE) up tests --build
+
 # Запуск контейнеров
 .PHONY: up
 up:
