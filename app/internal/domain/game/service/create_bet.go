@@ -16,6 +16,7 @@ type CreateBetService struct {
 	webSocket                websocket.Manager
 	roundPlayerLogRepository repository.RoundPlayerLogRepository
 	createRoundPlayerLog     *CreateRoundPlayerLog
+	roundObserver            *RoundObserver
 }
 
 type NewBetMessage struct {
@@ -38,12 +39,14 @@ func NewCreateBetService(
 	websocket websocket.Manager,
 	roundPlayerLogRepository repository.RoundPlayerLogRepository,
 	createRoundPlayerLog *CreateRoundPlayerLog,
+	roundObserver *RoundObserver,
 ) *CreateBetService {
 	return &CreateBetService{
 		betRepository:            betRepository,
 		webSocket:                websocket,
 		roundPlayerLogRepository: roundPlayerLogRepository,
 		createRoundPlayerLog:     createRoundPlayerLog,
+		roundObserver:            roundObserver,
 	}
 }
 
@@ -125,7 +128,13 @@ func (cbs *CreateBetService) CreateBet(ctx context.Context, tx pgx.Tx, player *m
 		},
 	}
 
-	if err := cbs.sendWebSocketMessage(round.Game().Room().Uid(), message); err != nil {
+	if err = cbs.sendWebSocketMessage(round.Game().Room().Uid(), message); err != nil {
+		return nil, err
+	}
+
+	err = cbs.roundObserver.ObserveRoundState(round)
+	if nil != err {
+		log.Println("Observer error")
 		return nil, err
 	}
 

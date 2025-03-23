@@ -147,6 +147,7 @@ func InitializeRouter() (http.Handler, error) {
 		gameService.NewCreateRoundService,
 		gameService.NewCreateRoundPlayerLog,
 		gameService.NewSendAnswer,
+		gameService.NewRoundObserver,
 
 		// Handlers
 		ProvideWebSocketHandler,

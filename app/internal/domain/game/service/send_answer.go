@@ -14,15 +14,18 @@ import (
 type SendAnswer struct {
 	roundPlayerLogRepository repository.RoundPlayerLogRepository
 	webSocket                websocket.Manager
+	roundObserver            *RoundObserver
 }
 
 func NewSendAnswer(
 	roundPlayerLogRepository repository.RoundPlayerLogRepository,
 	webSocket websocket.Manager,
+	roundObserver *RoundObserver,
 ) *SendAnswer {
 	return &SendAnswer{
 		roundPlayerLogRepository: roundPlayerLogRepository,
 		webSocket:                webSocket,
+		roundObserver:            roundObserver,
 	}
 }
 
@@ -57,6 +60,8 @@ func (s *SendAnswer) SendAnswer(ctx context.Context, tx pgx.Tx, roundPlayerLog *
 	if err = s.sendAnswerWebSocketMessage(roundPlayerLog.Round().Game().Room().Uid(), message); err != nil {
 		return err
 	}
+	s.roundObserver.ObserveRoundState(roundPlayerLog.Round())
+
 	return nil
 }
 
