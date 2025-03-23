@@ -40,11 +40,11 @@ func NewRoundObserver(repo repository.RoundPlayerLogRepository, ws websocket.Man
 	}
 }
 
-func (ro *RoundObserver) ObserveRoundState(round *model.Round) {
+func (ro *RoundObserver) ObserveRoundState(round *model.Round) error {
 	roundPlayerLogs, err := ro.roundPlayerLogRepo.FindByRound(round)
 	if err != nil {
 		log.Printf("Observer: Failed to get RoundPlayerLogs: %v", err)
-		return
+		return err
 	}
 
 	allAnswered := true
@@ -90,6 +90,7 @@ func (ro *RoundObserver) ObserveRoundState(round *model.Round) {
 			},
 		})
 	}
+	return nil
 }
 
 func (ro *RoundObserver) sendWebSocketMessage(roomID string, data any) {

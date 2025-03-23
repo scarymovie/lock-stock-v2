@@ -128,11 +128,15 @@ func (cbs *CreateBetService) CreateBet(ctx context.Context, tx pgx.Tx, player *m
 		},
 	}
 
-	if err := cbs.sendWebSocketMessage(round.Game().Room().Uid(), message); err != nil {
+	if err = cbs.sendWebSocketMessage(round.Game().Room().Uid(), message); err != nil {
 		return nil, err
 	}
 
-	cbs.roundObserver.ObserveRoundState(round)
+	err = cbs.roundObserver.ObserveRoundState(round)
+	if nil != err {
+		log.Println("Observer error")
+		return nil, err
+	}
 
 	return bet, nil
 }
